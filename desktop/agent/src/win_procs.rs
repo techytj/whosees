@@ -4,8 +4,8 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use std::os::windows::ffi::OsStringExt;
-use windows_sys::Win32::Foundation::CloseHandle;
-use windows_sys::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
+use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, ERROR_INVALID_PARAMETER};
+use windows_sys::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, QueryDosDeviceW, VerQueryValueW};
 use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
 
 #[derive(Clone, Debug, Serialize)]
@@ -27,8 +27,11 @@ impl Procs {
     pub fn app_for_sock(&mut self, s: &crate::sock::Sock) -> AppInfo {
         if let Some(a) = self.by_pid.get(&s.pid) { return a.clone(); }
         let a = self.identify(s.pid);
-        if self.by_pid.len() > 4096 { self.by_pid.clear(); }
-        self.by_pid.insert(s.pid, a.clone());
+        // Only remember real answers: a "program started" event can still arrive and name it.
+        if a.exe.is_some() || a.id == "system" {
+            if self.by_pid.len() > 4096 { self.by_pid.clear(); }
+            self.by_pid.insert(s.pid, a.clone());
+        }
         a
     }
 
@@ -37,7 +40,11 @@ impl Procs {
             return AppInfo { id: "system".into(), name: "Windows".into(), icon: None, exe: None, system: true };
         }
         let Some(exe) = exe_path(pid).or_else(|| remembered(pid)) else {
-            // Protected service: needs admin to see which one.
+            // Still running but hidden from us: a protected Windows service (needs admin to see which).
+            // Already gone: a program that ran for a moment (don't call it a Windows service).
+            if gone(pid) {
+                return AppInfo { id: format!("pid:{pid}"), name: "Short-lived program".into(), icon: None, exe: None, system: false };
+            }
             return AppInfo { id: format!("pid:{pid}"), name: "Windows service".into(), icon: None, exe: None, system: true };
         };
         let lower = exe.to_lowercase();
@@ -77,6 +84,49 @@ pub fn remember(pid: u32) {
 pub fn exe_of(pid: u32) -> Option<String> { exe_path(pid).or_else(|| remembered(pid)) }
 
 fn remembered(pid: u32) -> Option<String> { SEEN.lock().ok()?.as_ref()?.get(&pid).cloned() }
+
+/// From the "program started" event (Deep mode): pid -> exe, even for programs that exit at once.
+/// `image` is a kernel path like \Device\HarddiskVolume3\Windows\System32\curl.exe.
+pub fn remember_start(pid: u32, image: &str) {
+    if pid <= 4 || image.is_empty() { return; }
+    let path = nt_to_dos(image);
+    let Ok(mut g) = SEEN.lock() else { return };
+    let m = g.get_or_insert_with(HashMap::new);
+    if m.len() > 8192 { m.clear(); }
+    m.insert(pid, path); // pids are reused: the newest start wins
+}
+
+/// \Device\HarddiskVolumeN\... -> C:\... using the drive letter mapping.
+fn nt_to_dos(p: &str) -> String {
+    static MAP: std::sync::OnceLock<Vec<(String, String)>> = std::sync::OnceLock::new();
+    let map = MAP.get_or_init(|| {
+        let mut v = Vec::new();
+        for l in b'A'..=b'Z' {
+            let drive = format!("{}:", l as char);
+            let mut buf = [0u16; 512];
+            let n = unsafe { QueryDosDeviceW(wide(&drive).as_ptr(), buf.as_mut_ptr(), buf.len() as u32) };
+            if n == 0 { continue; }
+            let end = buf.iter().position(|&c| c == 0).unwrap_or(0);
+            v.push((String::from_utf16_lossy(&buf[..end]), drive));
+        }
+        v
+    });
+    for (dev, drive) in map {
+        if p.len() > dev.len() && p[..dev.len()].eq_ignore_ascii_case(dev) && p.as_bytes()[dev.len()] == b'\\' {
+            return format!("{drive}{}", &p[dev.len()..]);
+        }
+    }
+    p.to_string()
+}
+
+/// True if the process has exited (OpenProcess says the pid doesn't exist, rather than "access denied").
+fn gone(pid: u32) -> bool {
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if !h.is_null() { CloseHandle(h); return false; }
+        GetLastError() == ERROR_INVALID_PARAMETER
+    }
+}
 
 fn wide(s: &str) -> Vec<u16> { s.encode_utf16().chain(std::iter::once(0)).collect() }
 

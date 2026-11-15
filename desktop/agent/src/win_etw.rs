@@ -16,6 +16,7 @@ use std::time::Instant;
 
 const KERNEL_NETWORK: &str = "7dd42a49-5329-4832-8dfd-43d979153a88";
 const DNS_CLIENT: &str = "1c95126e-7eea-49a9-a3fe-a378b03ddb4d";
+const KERNEL_PROCESS: &str = "22fb2cd6-0e7b-422b-a0c7-2fad1fd0e716";
 const SESSION: &str = "WhoSees-Network";
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -77,7 +78,18 @@ pub fn start(flows: Flows, dns_tx: std::sync::mpsc::Sender<crate::sniff::Obs>) -
     };
     let dns_provider = Provider::by_guid(DNS_CLIENT).add_callback(dns_cb).build();
 
-    let trace = UserTrace::new().named(SESSION.to_string()).enable(provider).enable(dns_provider).start_and_process()
+    // Kernel-Process: event 1 = a program started, with its file. Lets even a program that runs for
+    // a split second (like curl) be named by its real file instead of "unknown".
+    let proc_cb = |record: &EventRecord, locator: &SchemaLocator| {
+        if record.event_id() != 1 { return; }
+        let Ok(schema) = locator.event_schema(record) else { return };
+        let p = Parser::create(record, &schema);
+        let (Ok(pid), Ok(image)) = (p.try_parse::<u32>("ProcessID"), p.try_parse::<String>("ImageName")) else { return };
+        crate::procs::remember_start(pid, &image);
+    };
+    let proc_provider = Provider::by_guid(KERNEL_PROCESS).any(0x10).add_callback(proc_cb).build(); // 0x10 = process events
+
+    let trace = UserTrace::new().named(SESSION.to_string()).enable(provider).enable(dns_provider).enable(proc_provider).start_and_process()
         .map_err(|e| format!("{e:?}"))?;
     Ok(Etw { _trace: trace })
 }

@@ -6,12 +6,25 @@
 <title>WhoSees: see who your apps are talking to</title>
 <link rel="canonical" href="https://whosees.app/">
 <meta property="og:url" content="https://whosees.app/">
-<meta name="description" content="Every app on your phone and computer sends information to companies around the world. WhoSees shows you which app, which company and where, live on a map. Free and open source.">
+<meta name="description" content="See which apps on your phone and computer send your data to which companies, and where, live on a map in plain English. Free and open source.">
 <meta property="og:title" content="WhoSees: see who your apps are talking to">
 <meta property="og:description" content="A live map of which apps send data to which companies, in plain English. Free and open source, for Windows, Linux and Android.">
 <meta property="og:image" content="https://whosees.app/img/og.png">
 <meta name="theme-color" content="#0a0b0d">
 <link rel="icon" href="img/favicon.png">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="WhoSees">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="WhoSees: a live world map of which apps send your data to which companies">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WhoSees: see who your apps are talking to">
+<meta name="twitter:description" content="A live map of which apps send data to which companies, in plain English. Free and open source, for Windows, Linux and Android.">
+<meta name="twitter:image" content="https://whosees.app/img/og.png">
+<link rel="apple-touch-icon" href="img/icon.png">
+<link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees","description":"Shows, live on a world map, which app on your computer or phone sends data, which company receives it, where it goes and what kind of data it probably is. Runs locally; sends no data anywhere.","url":"https://whosees.app/","image":"https://whosees.app/img/og.png","screenshot":"https://whosees.app/img/screen-desktop.webp","applicationCategory":"SecurityApplication","operatingSystem":"Windows 10, Windows 11, Linux, Android 10+","softwareVersion":"0.1.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","downloadUrl":["https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"},"codeRepository":"https://github.com/techytj/whosees","isAccessibleForFree":true},{"@context":"https://schema.org","@type":"WebSite","name":"WhoSees","url":"https://whosees.app/"},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can it read my messages or passwords?","acceptedAnswer":{"@type":"Answer","text":"No. WhoSees looks at where your data goes, like reading the address on an envelope but never the letter inside. Almost everything apps send is encrypted, and WhoSees doesn't open it. The only exception is information an app sends completely unprotected, which anyone on your Wi-Fi could read. WhoSees points that out so you know."}},{"@type":"Question","name":"Is it a VPN? Does my data go somewhere?","acceptedAnswer":{"@type":"Answer","text":"On Android, WhoSees uses the phone's built-in VPN feature, because that's the only way Android lets an app see where other apps send data. It isn't a VPN service. Nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway."}},{"@type":"Question","name":"Why does it ask for permission or a password?","acceptedAnswer":{"@type":"Answer","text":"Seeing every connection and website name needs administrator approval on a computer. Windows shows a Yes/No prompt and Linux asks for your login password. The password goes to your computer's own security system, never to WhoSees. On Android you tap OK once to allow the VPN."}},{"@type":"Question","name":"Will it slow down my phone or drain the battery?","acceptedAnswer":{"@type":"Answer","text":"It only runs while you're looking, so there's no drain the rest of the time. While it's on, things work normally. In testing on a Samsung Galaxy S21, streaming, browsing and downloads all ran at full speed."}},{"@type":"Question","name":"What do \"seen\" and \"likely\" mean?","acceptedAnswer":{"@type":"Answer","text":"\"Seen\" means WhoSees read it directly in data an app sent unprotected, your location for example. \"Likely\" means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives. It never presents a guess as a fact."}},{"@type":"Question","name":"Is it really free? What's the catch?","acceptedAnswer":{"@type":"Answer","text":"No catch. WhoSees is open source and every feature is free, for everyone. There are no ads, no subscription and nothing is sold. If you'd like to help, you can buy me a coffee, but you never have to."}},{"@type":"Question","name":"Who's behind WhoSees?","acceptedAnswer":{"@type":"Answer","text":"One independent developer, working with an AI assistant. The full story is in \"How it was made\" above."}}]}]</script>
 <style>
 @font-face { font-family: "Archivo"; src: url("fonts/archivo.woff2") format("woff2-variations"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url("fonts/plex-mono.woff2") format("woff2"); font-weight: 400; font-display: swap; }
@@ -230,6 +243,34 @@ figcaption { display: flex; justify-content: space-between; gap: 12px; padding-t
 .dl .go { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--line-2); font-size: 20px; transition: background .15s, color .15s, border-color .15s; }
 .dl a:hover .go { background: var(--sig); color: var(--sig-ink); border-color: var(--sig); }
 
+/* Windows warning explainer */
+.wwarn { color: var(--sig); }
+dialog#winDlg { width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--fg); overflow: auto; }
+dialog#winDlg::backdrop { background: rgba(5,6,8,.78); backdrop-filter: blur(4px); }
+.wd { padding: clamp(20px, 3.4vw, 36px); }
+.wd .idx { margin-bottom: 14px; }
+.wd h3 { font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.035em; }
+.wd .wl { color: var(--fg-2); margin: 14px 0 16px; }
+.ss { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ssw { background: #1f5fa8; color: #fff; padding: 16px 18px 14px; font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; line-height: 1.45; min-height: 150px; display: flex; flex-direction: column; }
+.sst { font-size: 19px; font-weight: 300; margin-bottom: 8px; }
+.ssb { opacity: .92; flex: 1; }
+.ssl, .ssf { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.ssf { justify-content: flex-end; }
+.ss .hl { outline: 2px solid var(--sig); outline-offset: 3px; text-decoration: underline; }
+.ss .btn2, .ss .btn3 { border: 1px solid #fff; padding: 5px 14px; text-decoration: none; }
+.ss .btn2 { order: 1; } .ss .ssf i { order: 2; } .ss .btn3 { order: 3; opacity: .9; }
+.ss i { font: 700 12px var(--mono); font-style: normal; background: var(--sig); color: var(--sig-ink); width: 20px; height: 20px; display: grid; place-items: center; }
+.cap { color: var(--fg-2); margin: 12px 0 0; }
+.wd .wwhy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; border: 1px solid var(--line); }
+.wd .wwhy > div { padding: 16px 18px; border-left: 1px solid var(--line); }
+.wd .wwhy > div:first-child { border-left: 0; }
+.wd .wwhy b { font-weight: 700; font-stretch: 112%; }
+.wd .wwhy p { color: var(--fg-2); font-size: 14.5px; margin: 6px 0 0; }
+.wd .wwhy code { font-family: var(--mono); font-size: 12px; color: var(--fg); background: var(--bg-3); padding: 1px 4px; }
+.wf { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+@media (max-width: 760px) { .ss, .wd .wwhy { grid-template-columns: 1fr; } .wd .wwhy > div { border-left: 0; border-top: 1px solid var(--line); } .wd .wwhy > div:first-child { border-top: 0; } .wf .btn { flex: 1 1 100%; justify-content: space-between; } }
+
 /* faq */
 .faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(28px, 5vw, 64px); margin-top: 48px; align-items: start; }
 .faq details { border-top: 1px solid var(--line-2); padding: 18px 0 20px; }
@@ -301,7 +342,7 @@ footer .mono { line-height: 1.75; }
 
 <header class="bar"><div class="wrap">
   <a class="logo" href="#"><img src="img/icon.png" alt="">WhoSees</a>
-  <nav><a href="#how">How it works</a><a href="#see">What you'll see</a><a href="#price">Price</a><a href="#note">Who made it</a><a href="#faq">Questions</a><a class="btn sm" href="#get">Download</a></nav>
+  <nav><a href="#how">How it works</a><a href="#see">What you'll see</a><a href="#price">Price</a><a href="#note">Who made it</a><a href="#faq">Questions</a><a class="btn sm" href="#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
 </div></header>
 
 <main>
@@ -319,7 +360,7 @@ footer .mono { line-height: 1.75; }
       <h1>See who your apps <span class="sig">talk to.</span></h1>
       <p class="lead">Every app on your phone and computer sends information to companies around the world. WhoSees shows you <b>which app, which company and where</b>, live on a map, in plain English.</p>
       <div class="ctas">
-        <a class="btn" href="#get">Download free <span class="k">↓</span></a>
+        <a class="btn" href="#get" data-umami-event="download-button" data-umami-event-where="hero">Download free <span class="k">↓</span></a>
         <a class="btn ghost" href="#how">See how it works</a>
       </div>
       <div class="checks mono"><span>Nothing leaves your device</span><span>No account</span><span>Off when you press Stop</span></div>
@@ -416,9 +457,9 @@ footer .mono { line-height: 1.75; }
       <h3>Like WhoSees? A small tip keeps it going.</h3>
       <p>It pays for the website, the AI tools used to build WhoSees, and keeping it up to date. Completely optional.</p>
       <div class="amts">
-        <a class="amt" href="https://www.paypal.com/paypalme/techytj/5USD" target="_blank" rel="noopener"><b>$5</b><span class="mono">a coffee</span></a>
-        <a class="amt hot" href="https://www.paypal.com/paypalme/techytj/10USD" target="_blank" rel="noopener"><b>$10</b><span class="mono">coffee &amp; a snack</span></a>
-        <a class="amt" href="https://www.paypal.com/paypalme/techytj/15USD" target="_blank" rel="noopener"><b>$15</b><span class="mono">lunch</span></a>
+        <a class="amt" href="https://www.paypal.com/paypalme/techytj/5USD" target="_blank" rel="noopener" data-umami-event="support-click" data-umami-event-amount="5"><b>$5</b><span class="mono">a coffee</span></a>
+        <a class="amt hot" href="https://www.paypal.com/paypalme/techytj/10USD" target="_blank" rel="noopener" data-umami-event="support-click" data-umami-event-amount="10"><b>$10</b><span class="mono">coffee &amp; a snack</span></a>
+        <a class="amt" href="https://www.paypal.com/paypalme/techytj/15USD" target="_blank" rel="noopener" data-umami-event="support-click" data-umami-event-amount="15"><b>$15</b><span class="mono">lunch</span></a>
       </div>
       <p class="cf mono">Amounts in US dollars. Opens PayPal. Tipping doesn't change anything in the app, and WhoSees never sees your payment details.</p>
     </div>
@@ -444,15 +485,15 @@ footer .mono { line-height: 1.75; }
   <div class="idx mono"><b>07</b> DOWNLOAD</div>
   <h2 class="rv">Get WhoSees. <span class="dim">It's free.</span></h2>
   <div class="dl">
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk" class="rv"><span class="n">A</span><span class="os">Android</span><span class="meta mono">Android 10 or newer · APK, about 80 MB</span><span class="go">↓</span></a>
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe" class="rv"><span class="n">W</span><span class="os">Windows</span><span class="meta mono">Windows 10 &amp; 11, 64-bit · installer, about 190 MB</span><span class="go">↓</span></a>
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage" class="rv"><span class="n">L</span><span class="os">Linux</span><span class="meta mono">AppImage for any distribution, about 210 MB</span><span class="go">↓</span></a>
+    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk" class="rv" data-umami-event="download" data-umami-event-platform="android"><span class="n">A</span><span class="os">Android</span><span class="meta mono">Android 10 or newer · APK, about 80 MB</span><span class="go">↓</span></a>
+    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe" class="rv" data-win><span class="n">W</span><span class="os">Windows</span><span class="meta mono">Windows 10 &amp; 11, 64-bit · installer, about 190 MB<br><span class="wwarn">Windows will show a warning when you run it. Here's why.</span></span><span class="go">↓</span></a>
+    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage" class="rv" data-umami-event="download" data-umami-event-platform="linux"><span class="n">L</span><span class="os">Linux</span><span class="meta mono">AppImage for any distribution, about 210 MB</span><span class="go">↓</span></a>
   </div>
-  <p class="dlnote mono">Also: <a href="https://github.com/techytj/whosees/releases/latest/download/whosees-fedora.x86_64.rpm">Fedora package (.rpm)</a> · <a href="https://github.com/techytj/whosees/releases">all versions and release notes</a> · <a href="#install">install help</a></p>
-  <p class="dlnote mono" id="signing">Code signing policy: installers are built automatically from the <a href="https://github.com/techytj/whosees">public source code</a>; free Windows code signing is being set up with <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>. <a href="https://github.com/techytj/whosees#code-signing-policy">Full policy and privacy statement</a>.</p>
+  <p class="dlnote mono">Also: <a href="https://github.com/techytj/whosees/releases/latest/download/whosees-fedora.x86_64.rpm" data-umami-event="download" data-umami-event-platform="fedora">Fedora package (.rpm)</a> · <a href="https://github.com/techytj/whosees/releases">all versions and release notes</a> · <a href="#install">install help</a></p>
+  <p class="dlnote mono" id="signing">Code signing policy: the Windows installer is built automatically by GitHub from the <a href="https://github.com/techytj/whosees">public source code</a>; free Windows code signing is being set up with <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>. <a href="https://github.com/techytj/whosees#code-signing-policy">Full policy and privacy statement</a>.</p>
   <div class="install rv" id="install">
     <div><b>Android</b><p>Open the downloaded file and allow your browser to install apps when asked. Android may show a warning because WhoSees isn't from Google Play yet.</p></div>
-    <div><b>Windows</b><p>Run the installer. Windows may say "Windows protected your PC" because WhoSees is new and not code-signed yet: click <i>More info</i>, then <i>Run anyway</i>.</p></div>
+    <div><b>Windows</b><p>Run the installer. Windows will say "Windows protected your PC": click <i>More info</i>, then <i>Run anyway</i>. <a href="#" data-winhelp>Why this happens</a>.</p></div>
     <div><b>Linux</b><p>Make the AppImage executable (right-click, Properties, "Allow executing", or <code>chmod +x</code>) and open it. On Fedora, the .rpm installs it like any other app.</p></div>
   </div>
 </div></section>
@@ -481,6 +522,24 @@ footer .mono { line-height: 1.75; }
   <div class="mono"><h4>DATA</h4>Map © OpenStreetMap contributors, Protomaps<br>IP location by DB-IP.com<br>Tracker data: AdGuard companiesdb / WhoTracks.me<br>Threat data: Hagezi, abuse.ch</div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
 
+<dialog id="winDlg" aria-labelledby="winT">
+  <div class="wd">
+    <div class="idx mono"><b>!</b> BEFORE YOU INSTALL ON WINDOWS</div>
+    <h3 id="winT">Windows will warn you when you run the installer. That's expected.</h3>
+    <p class="wl">Here's what you'll see and what to do:</p>
+    <div class="ss" aria-hidden="true">
+      <div class="ssw"><div class="sst">Windows protected your PC</div><div class="ssb">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</div><div class="ssl"><span class="hl">More info</span><i>1</i></div></div>
+      <div class="ssw"><div class="sst">Windows protected your PC</div><div class="ssb">App: WhoSees-Windows-Setup.exe<br>Publisher: Unknown publisher</div><div class="ssf"><span class="hl btn2">Run anyway</span><i>2</i><span class="btn3">Don't run</span></div></div>
+    </div>
+    <p class="mono cap">1. Click <b>More info</b> &nbsp;·&nbsp; 2. Click <b>Run anyway</b>. The WhoSees installer then opens as normal.</p>
+    <div class="wwhy">
+      <div><b>Why it happens</b><p>Windows shows this for any new program that isn't <i>code-signed</i> yet: a digital signature that proves who published it. It doesn't mean anything is wrong with WhoSees, only that Windows hasn't seen it before. Signing certificates usually cost hundreds of dollars a year, a lot for a free app.</p></div>
+      <div><b>What's being done</b><p>WhoSees has applied for free code signing from the <a href="https://signpath.org" target="_blank" rel="noopener">SignPath Foundation</a>, which signs open-source projects. Once approved, the installer will be signed, and the warning fades as more people install it, because Windows builds trust over time. This page will be updated.</p></div>
+      <div><b>Check it yourself</b><p>The installer is built automatically by GitHub from the <a href="https://github.com/techytj/whosees" target="_blank" rel="noopener">public source code</a>, never on a personal computer. To confirm your download wasn't changed, run <code>Get-FileHash WhoSees-Windows-Setup.exe</code> in PowerShell and compare it with <a href="https://github.com/techytj/whosees/releases/latest/download/SHA256SUMS.txt" target="_blank" rel="noopener">SHA256SUMS.txt</a>.</p></div>
+    </div>
+    <div class="wf"><a class="btn" id="winGo" data-umami-event="download" data-umami-event-platform="windows" href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe">Download for Windows <span class="k">↓</span></a><button class="btn ghost" id="winNo" type="button">Cancel</button></div>
+  </div>
+</dialog>
 <script>
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (s) => document.querySelector(s);
@@ -564,6 +623,13 @@ const io = new IntersectionObserver((es) => es.forEach((e) => {
 }), { threshold: 0.15 });
 document.querySelectorAll('.rv').forEach((e) => io.observe(e));
 if (reduce) document.querySelectorAll('.redact').forEach((r) => r.classList.add('open'));
+
+// Windows: explain the SmartScreen warning before the download starts
+const winDlg = $('#winDlg');
+document.querySelectorAll('[data-win], [data-winhelp]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); winDlg.showModal(); }));
+$('#winGo').addEventListener('click', () => setTimeout(() => winDlg.close(), 300));
+$('#winNo').addEventListener('click', () => winDlg.close());
+winDlg.addEventListener('click', (e) => { if (e.target === winDlg) winDlg.close(); });
 </script>
 </body>
 </html>
