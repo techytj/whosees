@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WhoSees user guide: step by step, with pictures</title>
+<meta name="description" content="How to use WhoSees step by step: start a live view, read the map, find out what each app sends, handle warnings, change settings and fix common problems. With screenshots.">
+<link rel="canonical" href="https://whosees.app/guide/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WhoSees">
+<meta property="og:url" content="https://whosees.app/guide/">
+<meta property="og:title" content="WhoSees user guide: step by step, with pictures">
+<meta property="og:description" content="How to use WhoSees step by step: start a live view, read the map, find out what each app sends, handle warnings, change settings and fix common problems. With screenshots.">
+<meta property="og:image" content="https://whosees.app/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0b0d">
+<link rel="icon" href="/img/favicon.png">
+<link rel="apple-touch-icon" href="/img/icon.png">
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css?v=10">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"WhoSees user guide","item":"https://whosees.app/guide/"}]},{"@context":"https://schema.org","@type":"TechArticle","headline":"WhoSees user guide","datePublished":"2026-11-15","dateModified":"2026-11-15","author":{"@type":"Person","name":"TechyTJ"},"publisher":{"@type":"Organization","name":"WhoSees","logo":{"@type":"ImageObject","url":"https://whosees.app/img/icon.png"}},"image":"https://whosees.app/img/guide/d-map.webp","mainEntityOfPage":"https://whosees.app/guide/"},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"I pressed Start but nothing appears.","acceptedAnswer":{"@type":"Answer","text":"WhoSees shows connections as they happen. Open a few apps, a website or a video, and they'll appear within seconds."}},{"@type":"Question","name":"Does WhoSees slow down my internet?","acceptedAnswer":{"@type":"Answer","text":"No. It only notes where each connection goes. Streaming, browsing and downloads run at normal speed."}},{"@type":"Question","name":"Can WhoSees read my messages or passwords?","acceptedAnswer":{"@type":"Answer","text":"No. It sees where your data goes, never what's inside encrypted traffic."}}]}]</script>
+<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
+  <nav id="menu"><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="coffee-link" href="/#support" data-umami-event="coffee-menu"><svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Buy me a coffee</a></nav>
+  <a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
+</div></header>
+<main class="page"><div class="wrap">
+  <div class="crumbs mono"><a href="/">Home</a></div>
+  <div class="phead">
+    <div class="idx mono"><b>USER GUIDE</b></div>
+    <h1>WhoSees user guide</h1>
+    <p class="lead">Everything you can do with WhoSees, step by step, with pictures from the app on a computer and an Android phone.</p>
+    
+  </div>
+  <div class="doc guide"><article>
+
+<nav class="toc-m mono"><b>IN THIS GUIDE</b><a href="#start">Getting started</a><a href="#live">Start a live view</a><a href="#map">Read the live map</a><a href="#apps">See which apps send the most</a><a href="#app">Find out what an app sends</a><a href="#place">Check a place on the map</a><a href="#companies">See every company and country</a><a href="#feed">Watch connections as they happen</a><a href="#search">Search</a><a href="#expert">Technical details (Expert)</a><a href="#alerts">When WhoSees warns you</a><a href="#privatedns">Missing website names (Android)</a><a href="#settings">Settings</a><a href="#stop">Stop WhoSees</a><a href="#support">Support WhoSees</a><a href="#trouble">Troubleshooting</a></nav>
+
+<h2 id="start">Getting started</h2>
+<p>First install WhoSees: see the step-by-step install pages for <a href="/android/">Android</a>, <a href="/windows/">Windows</a> and <a href="/linux/">Linux</a>. Then open it. You'll see the start screen:</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-start.webp" alt="The start screen on a computer" width="1440" height="900" loading="lazy"><span class="mk" style="left:35%;top:63.12%">1</span><span class="mk" style="left:35%;top:56.07%">2</span><span class="mk" style="left:37.74%;top:69.04%">3</span></div><figcaption>The start screen on a computer</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Start live view</b> begins watching. Nothing runs until you press it.</span></li><li><span class="mk-n">2</span><span><b>Deep mode</b> switch (computers only): adds website names and catches every connection. More below.</span></li><li><span class="mk-n">3</span><span><b>Your location</b>: where the lines on the map start from.</span></li></ol></figure>
+<h3>Set your location</h3>
+<ol><li>Click or tap the place name next to <b>Your location</b> (or open <b>Settings → Your location → Change</b>).</li>
+<li>Start typing your city and pick it from the list. WhoSees looks it up on your device; it isn't sent anywhere.</li></ol>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-location.webp" alt="Choosing your city" width="1440" height="900" loading="lazy"><span class="mk" style="left:50.85%;top:50.66%">1</span></div><figcaption>Choosing your city</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Type your city, then pick it from the list.</span></li></ol></figure>
+<h3>Update checks</h3>
+<p>The first time you open WhoSees, it asks whether you'd like it to check for updates. It's <b>off</b> unless you choose <b>Turn on update checks</b>. If you do, once a day when you open WhoSees it asks whosees.app for the newest version number. That request shows your internet address, like visiting any website, and nothing else. When a newer version is out, a short note appears with a <b>Download</b> button that opens the right page; WhoSees never installs anything by itself. You can change this any time in Settings.</p>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-updates.webp" alt="The first-launch question about update checks" width="540" height="1200" loading="lazy"><span class="mk" style="left:26.34%;top:69.9%">1</span><span class="mk" style="left:65.06%;top:70.33%">2</span></div><figcaption>The first-launch question about update checks</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>No thanks</b> keeps it off.</span></li><li><span class="mk-n">2</span><span><b>Turn on update checks</b></span></li></ol></figure></div>
+
+<h2 id="live">Start a live view</h2>
+<h3>On a computer</h3>
+<ol><li>Press <b>Start live view</b>.</li>
+<li>In <b>Standard</b> mode it starts right away, no password needed.</li>
+<li>With <b>Deep mode</b> on, WhoSees first explains what's about to happen. Click <b>Continue</b>, then approve the request: Windows shows a Yes/No prompt; Linux asks for the password you log in with. Your password goes to your system, never to WhoSees.</li></ol>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-deepask.webp" alt="Before Deep mode asks your system for permission" width="1440" height="900" loading="lazy"><span class="mk" style="left:62.72%;top:72.45%">1</span><span class="mk" style="left:52.67%;top:72%">2</span></div><figcaption>Before Deep mode asks your system for permission</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Continue</b> to Deep mode.</span></li><li><span class="mk-n">2</span><span><b>Use Standard mode</b> instead (no password).</span></li></ol></figure>
+<div class="box"><b class="mono">STANDARD OR DEEP?</b><p><b>Standard</b> shows apps, companies and places. <b>Deep</b> adds the names of the websites, labels trackers more precisely and catches very short connections. Both only look at where data goes, never what's inside it.</p></div>
+<h3>On an Android phone</h3>
+<ol><li>Tap <b>Start live view</b>.</li>
+<li>The first time, WhoSees explains that Android will ask about a VPN. Tap <b>Continue</b>.</li>
+<li>Android asks <i>"WhoSees wants to set up a VPN connection"</i>. Tap <b>OK</b>. The VPN stays on your phone: nothing is sent to a VPN server.</li></ol>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-start.webp" alt="Start screen on a phone" width="540" height="1200" loading="lazy"><span class="mk" style="left:50.02%;top:36.4%">1</span><span class="mk" style="left:59.47%;top:42.09%">2</span></div><figcaption>Start screen on a phone</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Start live view</b></span></li><li><span class="mk-n">2</span><span><b>Your location</b></span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-vpnexplain.webp" alt="WhoSees explains the VPN question first" width="540" height="1200" loading="lazy"><span class="mk" style="left:76.72%;top:69.94%">1</span></div><figcaption>WhoSees explains the VPN question first</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Continue</b>.</span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-vpnsystem.webp" alt="Android&#x27;s own question" width="540" height="1200" loading="lazy"><span class="mk" style="left:82.78%;top:63.5%">1</span></div><figcaption>Android's own question</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>OK</b>.</span></li></ol></figure></div>
+
+<h2 id="map">Read the live map</h2>
+<p>Within seconds, lines start flying from your location to the places your apps send data to. Each colour is a kind of company.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-map.webp" alt="A live view on a computer" width="1440" height="900" loading="lazy"><span class="mk" style="left:2.25%;top:12.17%">1</span><span class="mk" style="left:43.52%;top:47.3%">2</span><span class="mk" style="left:59.48%;top:42.12%">3</span><span class="mk" style="left:2.25%;top:95.8%">4</span><span class="mk" style="left:84.58%;top:9.55%">5</span><span class="mk" style="left:35.07%;top:94.89%">6</span></div><figcaption>A live view on a computer</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Totals</b>: how fast data is leaving now, how much has been sent, how many places and countries, and how many are trackers or advertisers.</span></li><li><span class="mk-n">2</span><span><b>You</b>: your location. Every line starts here.</span></li><li><span class="mk-n">3</span><span><b>A destination</b>: a company in another city. Brighter lines are active right now.</span></li><li><span class="mk-n">4</span><span><b>Colour key</b>: what the colours mean. Click a colour to hide or show that kind.</span></li><li><span class="mk-n">5</span><span><b>Tabs</b>: Apps, Feed, Places and Alerts.</span></li><li><span class="mk-n">6</span><span><b>Stop</b> turns WhoSees off.</span></li></ol></figure>
+<p>On a phone, the same things are stacked: the map on top, and a panel underneath you can tap the little handle on to make it bigger or smaller.</p>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-live.webp" alt="A live view on a phone" width="540" height="1200" loading="lazy"><span class="mk" style="left:3.4%;top:14.89%">1</span><span class="mk" style="left:70.75%;top:28.71%">2</span><span class="mk" style="left:50.02%;top:60.02%">3</span><span class="mk" style="left:50.02%;top:52.29%">4</span></div><figcaption>A live view on a phone</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Totals</b></span></li><li><span class="mk-n">2</span><span><b>You</b></span></li><li><span class="mk-n">3</span><span><b>Tabs</b></span></li><li><span class="mk-n">4</span><span><b>Stop</b></span></li></ol></figure></div>
+
+<h2 id="apps">See which apps send the most</h2>
+<ol><li>Open the <b>Apps</b> tab. Apps are sorted by how much they've sent.</li>
+<li>Each row says how many places and countries the app talks to, and the main company.</li>
+<li>A red <b>TRACKER</b> label means the app talks to tracking or advertising companies.</li></ol>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-apps.webp" alt="The Apps tab" width="1440" height="900" loading="lazy"><span class="mk" style="left:71.76%;top:34.5%">1</span><span class="mk" style="left:77.37%;top:25.96%">2</span><span class="mk" style="left:85.42%;top:15.45%">3</span></div><figcaption>The Apps tab</figcaption><ol class=keys><li><span class="mk-n">1</span><span>An app, with the places and company it talks to. Click it for details.</span></li><li><span class="mk-n">2</span><span><b>Tracker</b> label</span></li><li><span class="mk-n">3</span><span><b>Search</b> apps, companies or countries.</span></li></ol></figure>
+
+<h2 id="app">Find out what an app sends</h2>
+<ol><li>In the <b>Apps</b> tab, click or tap an app.</li>
+<li>Read the plain-English summary at the top.</li>
+<li>Under <b>What this app sent</b>: <b>Seen</b> means WhoSees read it in data sent without encryption (like your location). <b>Likely</b> means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives.</li>
+<li>The <b>Privacy report</b> gives a simple grade (Good, Fair or Poor) and why.</li>
+<li>Scroll down to see every place it sent data, then press <b>Back</b>.</li></ol>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-appdetail.webp" alt="An app&#x27;s details" width="1440" height="900" loading="lazy"><span class="mk" style="left:71.76%;top:14.68%">4</span><span class="mk" style="left:72.18%;top:30.84%">1</span><span class="mk" style="left:72.18%;top:52.73%">3</span><span class="mk" style="left:74.51%;top:73.81%">2</span></div><figcaption>An app's details</figcaption><ol class=keys><li><span class="mk-n">1</span><span>A plain-English summary.</span></li><li><span class="mk-n">2</span><span><b>Privacy report</b> grade.</span></li><li><span class="mk-n">3</span><span><b>What this app sent</b>: Seen and Likely.</span></li><li><span class="mk-n">4</span><span><b>Back</b> to the list.</span></li></ol></figure>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-appdetail.webp" alt="The same on a phone (the panel is expanded)" width="540" height="1200" loading="lazy"><span class="mk" style="left:6.98%;top:36.5%">1</span><span class="mk" style="left:6.98%;top:57.37%">3</span><span class="mk" style="left:14.93%;top:77.45%">2</span></div><figcaption>The same on a phone (the panel is expanded)</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Summary</span></li><li><span class="mk-n">2</span><span>Privacy grade</span></li><li><span class="mk-n">3</span><span>What it sent</span></li></ol></figure></div>
+
+<h2 id="place">Check a place on the map</h2>
+<p>On a computer, point at any dot. On a phone, tap it. A card shows the city, the company, what it likely receives, and which of your apps send data there.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-hover.webp" alt="Pointing at a place" width="1440" height="900" loading="lazy"><span class="mk" style="left:41.72%;top:48.15%">1</span><span class="mk" style="left:51.87%;top:51.02%">2</span></div><figcaption>Pointing at a place</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Point at (or tap) a dot.</span></li><li><span class="mk-n">2</span><span>The city, company, likely data, and the apps sending there.</span></li></ol></figure>
+
+<h2 id="companies">See every company and country</h2>
+<p>Open the <b>Places</b> tab for a list of every company and place your data went, with a flag for each country. Click one to see which apps sent data there.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-places.webp" alt="The Places tab" width="1440" height="900" loading="lazy"><span class="mk" style="left:88.03%;top:10.11%">1</span><span class="mk" style="left:71.76%;top:23.49%">2</span></div><figcaption>The Places tab</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Places</b> tab</span></li><li><span class="mk-n">2</span><span>A company in a city, with how much was sent.</span></li></ol></figure>
+
+<h2 id="feed">Watch connections as they happen</h2>
+<p>The <b>Feed</b> tab lists each connection the moment it happens, newest first: which app, which company and where.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-feed.webp" alt="The Feed tab" width="1440" height="900" loading="lazy"><span class="mk" style="left:81.13%;top:10.11%">1</span><span class="mk" style="left:71.76%;top:22.11%">2</span></div><figcaption>The Feed tab</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Feed</b> tab</span></li><li><span class="mk-n">2</span><span>The newest connection.</span></li></ol></figure>
+
+<h2 id="search">Search</h2>
+<p>Type in the search box above the list to find an app, a company or a country, for example <i>google</i> or <i>Ireland</i>. The list and the map show only what matches.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-search.webp" alt="Searching for &quot;google&quot;" width="1440" height="900" loading="lazy"><span class="mk" style="left:85.42%;top:15.45%">1</span><span class="mk" style="left:71.76%;top:23.49%">2</span></div><figcaption>Searching for "google"</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Type here.</span></li><li><span class="mk-n">2</span><span>Only matching results are shown.</span></li></ol></figure>
+
+<h2 id="expert">Technical details (Expert)</h2>
+<p>Switch from <b>Simple</b> to <b>Expert</b> at the top to see network addresses, ports, protocols and exact byte counts. Switch back to <b>Simple</b> any time.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-expert.webp" alt="Expert view" width="1440" height="900" loading="lazy"><span class="mk" style="left:81.31%;top:2.73%">1</span><span class="mk" style="left:71.76%;top:22.11%">2</span></div><figcaption>Expert view</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Expert</b> switch</span></li><li><span class="mk-n">2</span><span>Technical details for each connection.</span></li></ol></figure>
+
+<h2 id="alerts">When WhoSees warns you</h2>
+<p>If an app connects to a known scam or malware website, or does something suspicious, a warning appears at once. On a phone you also get a notification.</p>
+<ol><li>Read the warning: it says which app, where it connected and why that matters.</li>
+<li>Press <b>Details</b> to see that app or place, or <b>Got it</b> if you recognise it and it's fine.</li>
+<li>If you don't recognise the app, remove it. On a computer, if it runs from your Downloads or a temporary folder, close it and delete the file.</li>
+<li>All warnings are kept in the <b>Alerts</b> tab until you stop.</li></ol>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-alertcard.webp" alt="A warning on a computer" width="1440" height="900" loading="lazy"><span class="mk" style="left:17.75%;top:27.75%">1</span><span class="mk" style="left:23.55%;top:32.55%">2</span><span class="mk" style="left:70.31%;top:2.73%">3</span></div><figcaption>A warning on a computer</figcaption><ol class=keys><li><span class="mk-n">1</span><span>The warning.</span></li><li><span class="mk-n">2</span><span><b>Got it</b> marks it as seen.</span></li><li><span class="mk-n">3</span><span>The alert badge: click to see all warnings.</span></li></ol></figure>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-alert.webp" alt="A warning on a phone" width="540" height="1200" loading="lazy"><span class="mk" style="left:6.31%;top:27.1%">1</span><span class="mk" style="left:26.22%;top:33.69%">2</span></div><figcaption>A warning on a phone</figcaption><ol class=keys><li><span class="mk-n">1</span><span>The warning.</span></li><li><span class="mk-n">2</span><span><b>Got it</b></span></li></ol></figure></div>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-alerts.webp" alt="The Alerts tab" width="1440" height="900" loading="lazy"><span class="mk" style="left:94.93%;top:10.11%">1</span><span class="mk" style="left:72.04%;top:39.29%">2</span></div><figcaption>The Alerts tab</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Alerts</b> tab</span></li><li><span class="mk-n">2</span><span>Every warning from this session.</span></li></ol></figure>
+
+<h2 id="privatedns">Missing website names on Android (Private DNS)</h2>
+<p>If your phone uses <b>Private DNS</b> with a named provider, website names are encrypted before WhoSees can see them. WhoSees tells you when you press Start:</p>
+<ol><li>To see website names, tap <b>Open Settings</b>, search for <b>Private DNS</b>, choose <b>Off</b>, then come back and press Start.</li>
+<li>Or tap <b>Start anyway</b>: you'll still see the app, company and country.</li>
+<li>Turn Private DNS back on when you're done. WhoSees reminds you when you press Stop.</li></ol>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/p-privatedns.webp" alt="The Private DNS notice" width="540" height="1200" loading="lazy"><span class="mk" style="left:39.64%;top:70.91%">1</span><span class="mk" style="left:73.34%;top:71.35%">2</span></div><figcaption>The Private DNS notice</figcaption><ol class=keys><li><span class="mk-n">1</span><span><b>Open Settings</b></span></li><li><span class="mk-n">2</span><span><b>Start anyway</b></span></li></ol></figure></div>
+<p>More in <a href="/guides/private-dns-android/">What is Private DNS on Android?</a></p>
+
+<h2 id="settings">Settings</h2>
+<p>Click or tap the <b>gear</b> at the top right.</p>
+<table><tr><th>SETTING</th><th>WHAT IT DOES</th></tr>
+<tr><td>Appearance</td><td>Follow your system, or always dark or light.</td></tr>
+<tr><td>Your location</td><td>Where the lines start from. <b>Change</b> to pick another city.</td></tr>
+<tr><td>Deep mode</td><td>(Computers) Website names and every connection; asks for permission each time you press Start.</td></tr>
+<tr><td>Threat alerts</td><td>Warn about dangerous websites, malware servers and suspicious behaviour. On by default.</td></tr>
+<tr><td>Include local network</td><td>Also list devices in your home, like printers and TVs.</td></tr>
+<tr><td>Check for updates</td><td>Off unless you turn it on. When on, once a day when you open WhoSees it asks whosees.app for the newest version number and tells you if there's a newer one. <b>Check now</b> checks straight away.</td></tr>
+<tr><td>About</td><td>Version, data credits and <b>Open-source licences</b>.</td></tr></table>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-settings.webp" alt="Settings" width="1440" height="900" loading="lazy"><span class="mk" style="left:88.31%;top:2.73%">1</span></div><figcaption>Settings</figcaption><ol class=keys><li><span class="mk-n">1</span><span>The <b>gear</b> opens Settings.</span></li></ol></figure>
+
+<h2 id="stop">Stop WhoSees</h2>
+<p>Press <b>Stop</b> at the bottom of the map. WhoSees stops completely: nothing keeps running in the background. Closing the app does the same. On Android the VPN key icon disappears.</p>
+
+<h2 id="support">Support WhoSees</h2>
+<p>Every feature is free. If WhoSees is useful to you, open <b>Settings → Support WhoSees</b> (or the <a href="/#support">coffee section</a> on this website) and pick $5, $10 or $15. It opens PayPal in your browser; WhoSees never sees your payment details, and tipping doesn't change anything in the app.</p>
+<figure class="gfig"><div class="shot"><img src="/img/guide/d-support.webp" alt="Buy me a coffee" width="1440" height="900" loading="lazy"><span class="mk" style="left:50%;top:54.11%">1</span></div><figcaption>Buy me a coffee</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Pick an amount to open PayPal.</span></li></ol></figure>
+
+<h2 id="trouble">Troubleshooting</h2>
+<table><tr><th>PROBLEM</th><th>WHAT TO DO</th></tr>
+<tr><td>Nothing appears after Start</td><td>Use a few apps or open a website; connections appear within seconds.</td></tr>
+<tr><td>The password window doesn't appear (Linux)</td><td>It may be behind the WhoSees window. Check your taskbar.</td></tr>
+<tr><td>"Deep mode didn't start"</td><td>The password was wrong or the window was closed. Choose <b>Try again</b>, or <b>Keep Standard view</b>.</td></tr>
+<tr><td>Windows says "Windows protected your PC" when installing</td><td>Click <b>More info</b>, then <b>Run anyway</b>. <a href="/windows/">Why this happens</a>.</td></tr>
+<tr><td>"Is another VPN app on?" (Android)</td><td>Android allows one VPN at a time. Turn off the other VPN app, then press Start.</td></tr>
+<tr><td>No website names (Android)</td><td>Private DNS is on. See <a href="#privatedns">above</a>.</td></tr>
+<tr><td>An app shows as "Windows service" or "Short-lived program"</td><td>A protected Windows service, or a program that ran for only a moment. Deep mode names more of them.</td></tr></table>
+<h2>Questions</h2>
+<h3>I pressed Start but nothing appears.</h3><p>WhoSees shows connections as they happen. Open a few apps, a website or a video, and they&#x27;ll appear within seconds.</p>
+<h3>Does WhoSees slow down my internet?</h3><p>No. It only notes where each connection goes. Streaming, browsing and downloads run at normal speed.</p>
+<h3>Can WhoSees read my messages or passwords?</h3><p>No. It sees where your data goes, never what&#x27;s inside encrypted traffic.</p>
+
+  </article>
+  <aside class="side toc"><h4>IN THIS GUIDE</h4><a href="#start">Getting started</a><a href="#live">Start a live view</a><a href="#map">Read the live map</a><a href="#apps">See which apps send the most</a><a href="#app">Find out what an app sends</a><a href="#place">Check a place on the map</a><a href="#companies">See every company and country</a><a href="#feed">Watch connections as they happen</a><a href="#search">Search</a><a href="#expert">Technical details (Expert)</a><a href="#alerts">When WhoSees warns you</a><a href="#privatedns">Missing website names (Android)</a><a href="#settings">Settings</a><a href="#stop">Stop WhoSees</a><a href="#support">Support WhoSees</a><a href="#trouble">Troubleshooting</a><a class="btn" href="/#get">Download WhoSees <span class="k">↓</span></a></aside>
+  </div>
+</div></main>
+<footer><div class="wrap">
+  <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
+  <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+</div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+<script>
+// phone menu: the links fold into a ☰ button on narrow screens
+(() => { const bar = document.querySelector('.bar'), b = bar.querySelector('.menu-btn');
+  const set = (o) => { bar.classList.toggle('open', o); b.setAttribute('aria-expanded', o); };
+  b.addEventListener('click', () => set(!bar.classList.contains('open')));
+  bar.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); }); })();
+</script>
+</body>
+</html>

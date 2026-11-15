@@ -73,7 +73,7 @@ if os.path.exists(apk):
               'assets/shared/threats/domains.txt', 'assets/app/renderer/index.html', 'assets/app/node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs']:
         check(f'APK contains {f}', f in z, '')
     check('APK under 120 MB', os.path.getsize(apk) < 120e6, os.path.getsize(apk))
-    import shutil; shutil.copy(apk, os.path.join(APP, 'dist', 'WhoSees-0.1.0-android.apk'))
+    import shutil; shutil.copy(apk, os.path.join(APP, 'dist', f"WhoSees-{json.load(open(os.path.join(APP, 'package.json')))['version']}-android.apk"))
 
 print(f'PACKAGING {"OK" if fails == 0 else f"{fails} FAILED"}')
 sys.exit(fails)

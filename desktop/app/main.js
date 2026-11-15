@@ -314,6 +314,20 @@ ipcMain.handle('icon:get', async (_e, p) => {
 
 ipcMain.handle('settings:get', () => loadSettings());
 ipcMain.handle('settings:set', (_e, patch) => { const s = { ...loadSettings(), ...patch }; saveSettings(s); return s; });
+// Update check (off unless the user turns it on): fetch one small public file. No cookies, no ID, a bare
+// user agent; nothing about the user or the session is sent. WT_UPDATE_URL is only for automated tests.
+const UPDATE_URL = process.env.WT_UPDATE_URL || 'https://whosees.app/version.json';
+ipcMain.handle('update:check', () => new Promise((resolve) => {
+  const done = (r) => resolve(r);
+  const parse = (txt) => { try { const j = JSON.parse(txt); return { ok: true, latest: String(j.latest || ''), released: j.released || '', notes: j.notes || '' }; } catch { return { ok: false, error: 'bad reply' }; } };
+  if (UPDATE_URL.startsWith('file://')) { try { return done(parse(fs.readFileSync(new URL(UPDATE_URL), 'utf8'))); } catch (e) { return done({ ok: false, error: e.message }); } }
+  const req = require('node:https').get(UPDATE_URL, { headers: { 'User-Agent': 'WhoSees', Accept: 'application/json' }, timeout: 8000 }, (res) => {
+    if (res.statusCode !== 200) { res.resume(); return done({ ok: false, error: `HTTP ${res.statusCode}` }); }
+    let b = ''; res.setEncoding('utf8'); res.on('data', (c) => { if (b.length < 65536) b += c; }); res.on('end', () => done(parse(b)));
+  });
+  req.on('timeout', () => { req.destroy(); done({ ok: false, error: 'timeout' }); });
+  req.on('error', (e) => done({ ok: false, error: e.message }));
+}));
 ipcMain.handle('app:info', () => ({
   version: app.getVersion(), platform: process.platform, user: require('node:os').userInfo().username,
   agent: fs.existsSync(AGENT), geo: fs.existsSync(GEO), tiles: fs.existsSync(TILES),

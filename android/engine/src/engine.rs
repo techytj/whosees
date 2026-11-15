@@ -302,6 +302,8 @@ impl Engine {
             ic.udp_timeout(Duration::from_secs(120));
             let mut tcp = ipstack::TcpConfig::default();
             tcp.timeout = Duration::from_secs(3600);
+            // After an app finishes sending, its reply can take a while (big downloads, slow servers): keep the connection for it.
+            tcp.close_wait_timeout = Duration::from_secs(3600);
             ic.with_tcp_config(tcp);
             let mut stack = IpStack::new(ic, tun);
             let ticker = sh.clone();

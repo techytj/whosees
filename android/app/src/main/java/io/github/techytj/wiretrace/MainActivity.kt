@@ -190,7 +190,23 @@ class MainActivity : Activity() {
             prefs.edit().putString("settings", cur.toString()).apply()
             return cur.toString()
         }
-        @JavascriptInterface fun info(): String = JSONObject().put("version", "0.1.0").put("platform", "android")
+        /** Update check (off unless the user turns it on): one small public file, bare user agent, nothing about the user. */
+        @JavascriptInterface fun checkUpdate() {
+            Thread {
+                val r = try {
+                    val c = java.net.URL("https://whosees.app/version.json").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 8000; c.readTimeout = 8000; c.useCaches = false
+                    c.setRequestProperty("User-Agent", "WhoSees"); c.setRequestProperty("Accept", "application/json")
+                    if (c.responseCode != 200) JSONObject().put("ok", false).put("error", "HTTP ${c.responseCode}")
+                    else {
+                        val j = JSONObject(c.inputStream.bufferedReader().use { it.readText().take(65536) })
+                        JSONObject().put("ok", true).put("latest", j.optString("latest")).put("released", j.optString("released")).put("notes", j.optString("notes"))
+                    }
+                } catch (e: Exception) { JSONObject().put("ok", false).put("error", e.message ?: "error") }
+                emit("window.__wtUpdateResolve && window.__wtUpdateResolve($r)")
+            }.start()
+        }
+        @JavascriptInterface fun info(): String = JSONObject().put("version", packageManager.getPackageInfo(packageName, 0).versionName ?: "0.0.0").put("platform", "android")
             .put("agent", true).put("geo", true).put("tiles", true).put("user", "").toString()
         /** Private DNS on the real network (not our VPN). "server" is set only in hostname mode, the one that hides website names. */
         @JavascriptInterface fun privateDns(): String {
@@ -241,6 +257,7 @@ class MainActivity : Activity() {
     setSettings: async (p) => JSON.parse(A.setSettings(JSON.stringify(p))),
     setTheme: async (mode) => mode === 'dark' || (mode === 'system' && A.isDark()),
     info: async () => JSON.parse(A.info()),
+    checkUpdate: () => new Promise((res) => { window.__wtUpdateResolve = (r) => { window.__wtUpdateResolve = null; res(r); }; A.checkUpdate(); }),
     privateDns: async () => JSON.parse(A.privateDns()),
     openNetworkSettings: () => A.openNetworkSettings(),
   };

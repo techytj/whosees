@@ -8,8 +8,8 @@ android {
         applicationId = "io.github.techytj.whosees"
         minSdk = 29          // getConnectionOwnerUid (which app owns a connection) needs Android 10
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
     // Release signing: the key lives outside the repo. android/keystore.properties (never committed) points to it;

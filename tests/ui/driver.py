@@ -34,6 +34,7 @@ def run(out_dir, label, steps, settings, display='wt-shot', size=(1440, 900), en
     ensure_display(display, *size)
     ud = os.path.join(out_dir, f'ud-{label}')
     os.makedirs(ud, exist_ok=True)
+    settings = {'updatePromptSeen': True, **settings}  # the first-launch update question is tested on its own
     with open(os.path.join(ud, 'settings.json'), 'w') as f: json.dump(settings, f)
     spec = ','.join(f"{n}:{at}:{urllib.parse.quote(PRELUDE + js) if js else ''}" if js else f'{n}:{at}' for n, at, js in steps)
     e = dict(os.environ, WAYLAND_DISPLAY=display, WT_SHOT=os.path.join(out_dir, label), WT_SHOT_STEPS=spec, **(env or {}))

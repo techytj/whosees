@@ -1,6 +1,6 @@
 [package]
 name = "wtengine"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "WhoSees Android capture engine: local VPN packets -> real sockets, with the desktop agent's analysis"
@@ -22,3 +22,7 @@ opt-level = 3
 lto = true
 strip = true
 panic = "abort"
+
+[patch.crates-io]
+# ipstack 1.0.1 with TCP half-close / FIN fixes (see vendor/ipstack/WHOSEES-CHANGES.md)
+ipstack = { path = "vendor/ipstack" }

@@ -97,7 +97,47 @@ results += driver.run(out, 'premium', [
       $('#noticesClose').click();
       CHECK('licences-close', !$('#dlg').open, '');
     """),
+    ('coffee', 1000, """
+      CHECK('coffee-button-next-to-settings', !!$('#coffeeBtn') && $('#coffeeBtn').nextElementSibling === $('#settingsBtn') && $('#coffeeBtn').getBoundingClientRect().width > 0, '');
+      $('#coffeeBtn').click();
+      CHECK('coffee-button-opens-tips', $('#dlg').open && document.querySelectorAll('#dlg .tip-amt').length === 3, $('#dlg').innerText.slice(0, 80));
+      $('#supClose').click();
+    """),
 ], {'theme': 'dark', 'home': HOME})  # no 'premium' flag: everything must show for free
+# ---------- A3. Update checks: off by default, asked once at first launch, says what is sent ----------
+import json, tempfile
+vj = os.path.join(tempfile.mkdtemp(prefix='wt-ver-'), 'version.json')
+json.dump({'latest': '9.9.9', 'released': '2030-01-01', 'notes': 'test release'}, open(vj, 'w'))
+results += driver.run(out, 'updates', [
+    ('ask', 3500, """
+      CHECK('first-launch-asks-about-updates', $('#dlg').open && !!$('#updYes') && !!$('#updNo'), $('#dlg').innerText.slice(0, 80));
+      CHECK('says-what-is-sent', /internet address/.test($('#dlg').innerText) && /Nothing else is sent/.test($('#dlg').innerText), '');
+      CHECK('off-unless-turned-on', /off/i.test($('#dlg').innerText), '');
+      $('#updYes').click();
+    """),
+    ('note', 6000, """
+      CHECK('turning-on-saves-setting', W.reloadSettings && true, '');
+      var n = $('#updateNote');
+      CHECK('newer-version-shown', !n.hidden && n.innerText.includes('9.9.9'), n.innerText);
+      CHECK('download-link-goes-to-platform-page', ['https://whosees.app/linux/', 'https://whosees.app/windows/', 'https://whosees.app/android/'].includes(n.querySelector('a').href), n.querySelector('a') && n.querySelector('a').href);
+      n.querySelector('.note-x').click();
+      $('#settingsBtn').click();
+      CHECK('settings-shows-update-switch-on', $('#updSw') && $('#updSw').classList.contains('on'), '');
+      $('#dlg').close();
+    """),
+], {'theme': 'dark', 'home': HOME, 'updatePromptSeen': False}, env={'WT_UPDATE_URL': 'file://' + vj})
+json.dump({'latest': '0.0.1'}, open(vj, 'w'))
+results += driver.run(out, 'updates-off', [
+    ('idle', 4000, """
+      CHECK('no-question-once-answered', !$('#dlg').open, $('#dlg').innerText.slice(0, 60));
+      CHECK('no-check-when-off', $('#updateNote').hidden, '');
+      $('#settingsBtn').click(); $('#updNow').click();
+    """),
+    ('manual', 6000, """
+      CHECK('check-now-says-up-to-date', !$('#toast').hidden && /newest version/.test($('#toast').textContent), $('#toast').textContent);
+    """),
+], {'theme': 'dark', 'home': HOME, 'updatePromptSeen': True, 'updateCheck': False}, env={'WT_UPDATE_URL': 'file://' + vj})
+
 results.append(('premium: no-page-errors', not driver.page_errors(out, 'premium'), driver.page_errors(out, 'premium')))
 
 # ---------- B. Narrow window / phone size ----------

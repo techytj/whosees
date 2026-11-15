@@ -18,14 +18,16 @@
 <link rel="icon" href="/img/favicon.png">
 <link rel="apple-touch-icon" href="/img/icon.png">
 <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=4">
-<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"See which apps on your Android phone are tracking you","item":"https://whosees.app/android/"}]},{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees for Android 10+","applicationCategory":"SecurityApplication","operatingSystem":"Android 10+","softwareVersion":"0.1.0","downloadUrl":"https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://www.gnu.org/licenses/gpl-3.0.html","url":"https://whosees.app/","author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does WhoSees need root?","acceptedAnswer":{"@type":"Answer","text":"No. WhoSees uses Android's built-in VPN feature, which any app can use with your permission. No root or special setup is needed."}},{"@type":"Question","name":"Is WhoSees a VPN service?","acceptedAnswer":{"@type":"Answer","text":"No. Android calls it a VPN because that's the only way an app can see where other apps send data. Everything stays on your phone: nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway."}},{"@type":"Question","name":"Will it drain my battery?","acceptedAnswer":{"@type":"Answer","text":"Only while it's running. WhoSees runs only while you have a live view on, and stops completely when you press Stop."}},{"@type":"Question","name":"Is WhoSees on Google Play?","acceptedAnswer":{"@type":"Answer","text":"Not yet. For now, install it from this page. A Google Play version is planned."}}]}]</script>
+<link rel="stylesheet" href="/css/site.css?v=10">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"See which apps on your Android phone are tracking you","item":"https://whosees.app/android/"}]},{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees for Android 10+","applicationCategory":"SecurityApplication","operatingSystem":"Android 10+","softwareVersion":"0.1.1","downloadUrl":"https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://www.gnu.org/licenses/gpl-3.0.html","url":"https://whosees.app/","author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Does WhoSees need root?","acceptedAnswer":{"@type":"Answer","text":"No. WhoSees uses Android's built-in VPN feature, which any app can use with your permission. No root or special setup is needed."}},{"@type":"Question","name":"Is WhoSees a VPN service?","acceptedAnswer":{"@type":"Answer","text":"No. Android calls it a VPN because that's the only way an app can see where other apps send data. Everything stays on your phone: nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway."}},{"@type":"Question","name":"Will it drain my battery?","acceptedAnswer":{"@type":"Answer","text":"Only while it's running. WhoSees runs only while you have a live view on, and stops completely when you press Stop."}},{"@type":"Question","name":"Is WhoSees on Google Play?","acceptedAnswer":{"@type":"Answer","text":"Not yet. For now, install it from this page. A Google Play version is planned."}},{"@type":"Question","name":"Do I need Developer options to install WhoSees?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Most phones only need you to allow your browser to install apps. Developer options are only needed where Android requires apps from verified developers (Brazil, Indonesia, Singapore and Thailand since September 2026, and everywhere from 2027), or if you install from a computer."}},{"@type":"Question","name":"Is it safe to allow installing unknown apps?","acceptedAnswer":{"@type":"Answer","text":"Allowing one app, like your browser, to install apps is safe as long as you only install apps you trust. You can turn the permission off again right after installing WhoSees."}}]}]</script>
 <script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
 </head>
 <body>
 <header class="bar"><div class="wrap">
   <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
-  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+  <nav id="menu"><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="coffee-link" href="/#support" data-umami-event="coffee-menu"><svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Buy me a coffee</a></nav>
+  <a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div></header>
 <main class="page"><div class="wrap">
   <div class="crumbs mono"><a href="/">Home</a></div>
@@ -44,13 +46,61 @@
 <li><b>What kind of data</b> it probably is, like your location or advertising ID, plus a privacy report for each app.</li>
 <li><b>Warnings</b> when an app connects to a known scam website or malware server.</li>
 </ul>
-<h2>How to install WhoSees on Android</h2>
-<ol>
-<li>On your phone, tap <b>Download for Android</b> above to get <code>WhoSees-Android.apk</code> (about 80 MB).</li>
-<li>Open the downloaded file. If Android says your browser isn't allowed to install apps, tap <b>Settings</b>, turn on <b>Allow from this source</b>, then go back.</li>
-<li>Tap <b>Install</b>. Because WhoSees isn't on Google Play yet, Google Play Protect may ask you to scan the app or confirm. Choose to install it.</li>
-<li>Open WhoSees, set your city if asked, and tap <b>Start live view</b>.</li>
-</ol>
+<h2 id="install">How to install WhoSees on Android, step by step</h2>
+<p>WhoSees isn't on Google Play yet, so you install it from this page. It takes about two minutes. The pictures are from a phone running Android 16 with Chrome; other phones look a little different but the steps are the same.</p>
+<div class="box"><b class="mono">BEFORE YOU START</b><p>You need Android 10 or newer and about 200 MB free. You do <b>not</b> need to root your phone, and on most phones you do <b>not</b> need Developer options (see <a href="#developer">when you might</a>).</p></div>
+
+<h3>1. Download the app</h3>
+<p>On your phone, open this page in Chrome (or your usual browser) and tap <b>Download for Android</b>. The file is called <code>WhoSees-Android.apk</code> and is about 80 MB.</p>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/a-page.webp" alt="This page in Chrome" width="540" height="1200" loading="lazy"><span class="mk" style="left:50.0%;top:66.33%">1</span></div><figcaption>This page in Chrome</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Download for Android</b>.</span></li></ol></figure></div>
+
+<h3>2. Open the downloaded file</h3>
+<p>When the download finishes, open it in one of these ways:</p>
+<ul><li>Swipe down from the top of the screen and tap the <b>Download complete</b> notification for <code>WhoSees-Android.apk</code>.</li>
+<li>Or in Chrome tap <b>⋮ → Downloads</b> and tap the file.</li>
+<li>Or open the <b>Files</b> app (Samsung: <b>My Files</b>), go to <b>Downloads</b> and tap the file.</li></ul>
+<p>If your browser asks whether to keep a file of this type, choose <b>Download anyway</b>.</p>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/c-notification.webp" alt="The download notification" width="540" height="1200" loading="lazy"><span class="mk" style="left:42.22%;top:36.17%">1</span></div><figcaption>The download notification</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap the finished download.</span></li></ol></figure></div>
+
+<h3>3. Allow your browser to install apps (first time only)</h3>
+<p>Android protects you from apps installed outside the Play Store, so the first time it asks for permission:</p>
+<ol><li>Android says <i>"For your security, your phone currently isn't allowed to install unknown apps from this source."</i> Tap <b>Settings</b>.</li>
+<li>Turn on <b>Allow from this source</b>. This only lets your browser install apps you choose to open; you can turn it off again afterwards.</li>
+<li>The install question comes back on its own (on some phones, press <b>Back</b>).</li></ol>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/d-blocked.webp" alt="Android asks first" width="540" height="1200" loading="lazy"><span class="mk" style="left:81.39%;top:57.92%">1</span></div><figcaption>Android asks first</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Settings</b>.</span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/e-allow.webp" alt="Install unknown apps" width="540" height="1200" loading="lazy"><span class="mk" style="left:31.11%;top:43.92%">1</span></div><figcaption>Install unknown apps</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Turn on <b>Allow from this source</b>.</span></li></ol></figure></div>
+
+<h3>4. Install</h3>
+<ol><li>Android asks <i>"Do you want to install this app?"</i> Tap <b>Install</b>.</li>
+<li>When it says <b>App installed</b>, tap <b>Open</b>.</li></ol>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/g-install.webp" alt="The install question" width="540" height="1200" loading="lazy"><span class="mk" style="left:82.78%;top:57.17%">1</span></div><figcaption>The install question</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Install</b>.</span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/i-done.webp" alt="Installed" width="540" height="1200" loading="lazy"><span class="mk" style="left:82.78%;top:57.17%">1</span></div><figcaption>Installed</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Open</b>.</span></li></ol></figure></div>
+
+<h3>5. Start WhoSees</h3>
+<p>Choose whether WhoSees may check for updates (it's off unless you turn it on), set your city if asked, and tap <b>Start live view</b>. Android then asks to allow a VPN: tap <b>OK</b>. The <a href="/guide/#live">user guide</a> shows what happens next.</p>
+
+<h2 id="blocked">If something blocks the install</h2>
+<h3>Google Play Protect</h3>
+<p>Google Play Protect checks apps installed from outside the Play Store. For a new app it may show one of these:</p>
+<ul><li><b>"App scan recommended"</b>: tap <b>Scan app</b>. WhoSees is open source and contains nothing harmful, so it installs after the scan. You can also choose <b>Install without scanning</b>.</li>
+<li><b>"Unsafe app blocked"</b> or <b>"Harmful app blocked"</b>: tap <b>More details</b>, then <b>Install anyway</b>. Play Protect is cautious with apps it hasn't seen before, and apps that use a VPN look unusual to it.</li></ul>
+<h3>Samsung phones: Auto Blocker</h3>
+<p>Many Samsung Galaxy phones have <b>Auto Blocker</b> turned on, which stops any app from outside Google Play or the Galaxy Store, with no "install anyway" button. To install WhoSees:</p>
+<ol><li>Open <b>Settings → Security and privacy → Auto Blocker</b>.</li>
+<li>Turn it <b>off</b>, then install WhoSees as above.</li>
+<li>Turn Auto Blocker back <b>on</b> afterwards if you like. WhoSees keeps working. (Newer Samsung software may turn it back on by itself after a while.)</li></ol>
+<p>Other phone makers have similar switches, for example Xiaomi's <b>Install via USB</b> or security scan prompts. If an install is blocked with no way forward, look in <b>Settings → Security</b>.</p>
+
+<h3 id="developer">"App from an unverified developer" and Developer options</h3>
+<p>Google is changing how apps from outside the Play Store are installed. Since <b>September 30, 2026</b> in <b>Brazil, Indonesia, Singapore and Thailand</b>, and in every country from <b>2027</b>, Android only installs apps from developers who have verified their identity with Google, unless you choose to allow others. If Android tells you WhoSees is from an <b>unverified developer</b> and won't install it, you can allow it once through Developer options:</p>
+<ol><li><b>Turn on Developer options.</b> Open <b>Settings → About phone</b> (Samsung: <b>Settings → About phone → Software information</b>) and tap <b>Build number</b> seven times. Enter your PIN if asked. Android says <b>"You are now a developer!"</b></li>
+<li>Open <b>Settings → System → Developer options</b> (Samsung: Developer options is at the bottom of Settings).</li>
+<li>Find <b>Apps from unverified developers</b>, turn it on, and confirm that nobody is asking you to do this.</li>
+<li>Restart your phone. Android then makes you wait <b>24 hours</b> (once per phone), a safety measure against scammers who pressure people over the phone.</li>
+<li>After the wait, go back to the same setting, confirm with your fingerprint, face or PIN, and choose <b>Allow temporarily</b> (7 days) or <b>Allow indefinitely</b>.</li>
+<li>Install WhoSees as above. When Android warns about the unverified developer, tap <b>Install anyway</b>.</li>
+<li>You can turn Developer options off again afterwards: <b>Developer options → Use developer options → off</b>.</li></ol>
+<div class="phones"><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/j-build.webp" alt="About phone, Build number at the bottom" width="540" height="1200" loading="lazy"><span class="mk" style="left:27.78%;top:90.21%">1</span></div><figcaption>About phone, Build number at the bottom</figcaption><ol class=keys><li><span class="mk-n">1</span><span>Tap <b>Build number</b> seven times.</span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/k-developer.webp" alt="&quot;You are now a developer!&quot;" width="540" height="1200" loading="lazy"><span class="mk" style="left:27.78%;top:90.21%">1</span></div><figcaption>"You are now a developer!"</figcaption><ol class=keys><li><span class="mk-n">1</span><span>The message appears here.</span></li></ol></figure><figure class="gfig phone"><div class="shot"><img src="/img/guide/install/l-devoptions.webp" alt="Developer options is now in Settings" width="540" height="1200" loading="lazy"></div><figcaption>Developer options is now in Settings</figcaption></figure></div>
+<div class="box"><b class="mono">ANOTHER WAY: FROM A COMPUTER</b><p>If you're comfortable with a computer, you can install with Android's own tools instead, which skips the waiting period: turn on <b>Developer options → USB debugging</b>, connect the phone, and run <code>adb install WhoSees-Android.apk</code>. Turn USB debugging off again when you're done.</p></div>
+<p>Outside the countries listed above, none of this is needed yet: the normal steps work.</p>
 <h2>Why Android asks to "set up a VPN connection"</h2>
 <p>The first time you press Start, Android asks whether WhoSees may set up a VPN connection. Tap <b>OK</b>. A VPN is the only way Android lets an app see where other apps send data.</p>
 <div class="box"><b class="mono">IT STAYS ON YOUR PHONE</b><p>WhoSees isn't a VPN service. Your traffic isn't sent to any server: WhoSees notes where each connection goes and passes it straight on, so your apps work exactly as before. You'll see a key icon while it runs, and it stops the moment you press Stop.</p></div>
@@ -62,12 +112,22 @@
 <tr><td>Phone</td><td>64-bit (almost every phone from the last several years)</td></tr>
 <tr><td>Space</td><td>About 80 MB to download</td></tr></table>
 <h2>Updating and uninstalling</h2>
-<p>To update, download the newest version from this page and install it over the old one. Your settings are kept. To remove WhoSees: <b>Settings → Apps → WhoSees → Uninstall</b>.</p>
+<p>To update, download the newest version from this page and install it over the old one, following the same steps; your settings are kept. WhoSees can also tell you when a new version is out if you turn on <b>Settings → Check for updates</b>. To remove WhoSees: <b>Settings → Apps → WhoSees → Uninstall</b>.</p>
+<h2 id="trouble">Install problems</h2>
+<table><tr><th>WHAT YOU SEE</th><th>WHAT TO DO</th></tr>
+<tr><td>"App not installed" or "conflicts with an existing package"</td><td>An older test version of WhoSees is installed. Uninstall it first, then install again.</td></tr>
+<tr><td>"There was a problem parsing the package"</td><td>The download didn't finish. Delete the file from Downloads and download it again.</td></tr>
+<tr><td>The install is blocked with no button to continue</td><td>On Samsung, turn off <b>Auto Blocker</b> (see <a href="#blocked">above</a>). Otherwise check <b>Settings → Security</b>.</td></tr>
+<tr><td>Can't find "Install unknown apps"</td><td>Open <b>Settings → Apps → Special app access → Install unknown apps</b>, pick your browser or Files app, and turn on <b>Allow from this source</b>.</td></tr>
+<tr><td>"App from an unverified developer"</td><td>See <a href="#developer">Developer options</a> above.</td></tr>
+<tr><td>Nothing happens when tapping the download</td><td>Open the <b>Files</b> app → <b>Downloads</b> and tap <code>WhoSees-Android.apk</code> there.</td></tr></table>
 <h2>Questions</h2>
 <h3>Does WhoSees need root?</h3><p>No. WhoSees uses Android&#x27;s built-in VPN feature, which any app can use with your permission. No root or special setup is needed.</p>
 <h3>Is WhoSees a VPN service?</h3><p>No. Android calls it a VPN because that&#x27;s the only way an app can see where other apps send data. Everything stays on your phone: nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway.</p>
 <h3>Will it drain my battery?</h3><p>Only while it&#x27;s running. WhoSees runs only while you have a live view on, and stops completely when you press Stop.</p>
 <h3>Is WhoSees on Google Play?</h3><p>Not yet. For now, install it from this page. A Google Play version is planned.</p>
+<h3>Do I need Developer options to install WhoSees?</h3><p>Usually not. Most phones only need you to allow your browser to install apps. Developer options are only needed where Android requires apps from verified developers (Brazil, Indonesia, Singapore and Thailand since September 2026, and everywhere from 2027), or if you install from a computer.</p>
+<h3>Is it safe to allow installing unknown apps?</h3><p>Allowing one app, like your browser, to install apps is safe as long as you only install apps you trust. You can turn the permission off again right after installing WhoSees.</p>
   </article>
   <aside class="side"><h4>GET WHOSEES</h4>
   <a href="/android/">Android 10 and newer</a><a href="/windows/">Windows 10 and 11</a><a href="/linux/">Linux (any distribution)</a>
@@ -79,7 +139,15 @@
 <footer><div class="wrap">
   <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
   <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
-  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+<script>
+// phone menu: the links fold into a ☰ button on narrow screens
+(() => { const bar = document.querySelector('.bar'), b = bar.querySelector('.menu-btn');
+  const set = (o) => { bar.classList.toggle('open', o); b.setAttribute('aria-expanded', o); };
+  b.addEventListener('click', () => set(!bar.classList.contains('open')));
+  bar.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); }); })();
+</script>
 </body>
 </html>

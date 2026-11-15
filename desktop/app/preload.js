@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('wt', {
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   setTheme: (mode) => ipcRenderer.invoke('win:theme', mode),
   info: () => ipcRenderer.invoke('app:info'),
+  checkUpdate: () => ipcRenderer.invoke('update:check'),
   platform: process.platform,
 });

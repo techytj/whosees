@@ -50,6 +50,7 @@ import atexit
 atexit.register(lambda: adb('shell', 'settings', 'put', 'system', 'screen_off_timeout', orig_timeout or '60000'))
 pid = front()
 check('WhoSees UI loads on the phone', until("!!(window.__wt && window.__wt.map && window.__wt.map.loaded())", 40) is True)
+time.sleep(2); js("document.getElementById('updNo') && document.getElementById('updNo').click()")  # first-launch update question
 before_settings = js("window.wt.getSettings()")
 js("window.wt.setSettings({vpnExplained:true}).then(() => window.__wt.reloadSettings())")
 t0 = time.time()

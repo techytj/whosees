@@ -1,7 +1,7 @@
 {
   "name": "whosees",
   "productName": "WhoSees",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "See where your computer's data is going, live on a map.",
   "license": "GPL-3.0-or-later",
   "main": "main.js",

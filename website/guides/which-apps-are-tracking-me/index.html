@@ -18,14 +18,16 @@
 <link rel="icon" href="/img/favicon.png">
 <link rel="apple-touch-icon" href="/img/icon.png">
 <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=4">
-<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://whosees.app/guides/"},{"@type":"ListItem","position":3,"name":"How to see which apps are tracking you","item":"https://whosees.app/guides/which-apps-are-tracking-me/"}]},{"@context":"https://schema.org","@type":"Article","headline":"How to see which apps are tracking you","datePublished":"2026-11-15","dateModified":"2026-11-14","author":{"@type":"Person","name":"TechyTJ"},"publisher":{"@type":"Organization","name":"WhoSees","logo":{"@type":"ImageObject","url":"https://whosees.app/img/icon.png"}},"image":"https://whosees.app/img/og.png","mainEntityOfPage":"https://whosees.app/guides/which-apps-are-tracking-me/"}]</script>
+<link rel="stylesheet" href="/css/site.css?v=10">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://whosees.app/guides/"},{"@type":"ListItem","position":3,"name":"How to see which apps are tracking you","item":"https://whosees.app/guides/which-apps-are-tracking-me/"}]},{"@context":"https://schema.org","@type":"Article","headline":"How to see which apps are tracking you","datePublished":"2026-11-15","dateModified":"2026-11-15","author":{"@type":"Person","name":"TechyTJ"},"publisher":{"@type":"Organization","name":"WhoSees","logo":{"@type":"ImageObject","url":"https://whosees.app/img/icon.png"}},"image":"https://whosees.app/img/og.png","mainEntityOfPage":"https://whosees.app/guides/which-apps-are-tracking-me/"}]</script>
 <script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
 </head>
 <body>
 <header class="bar"><div class="wrap">
   <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
-  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+  <nav id="menu"><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="coffee-link" href="/#support" data-umami-event="coffee-menu"><svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Buy me a coffee</a></nav>
+  <a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div></header>
 <main class="page"><div class="wrap">
   <div class="crumbs mono"><a href="/">Home</a> / <a href="/guides/">Guides</a></div>
@@ -70,7 +72,15 @@
 <footer><div class="wrap">
   <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
   <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
-  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+<script>
+// phone menu: the links fold into a ☰ button on narrow screens
+(() => { const bar = document.querySelector('.bar'), b = bar.querySelector('.menu-btn');
+  const set = (o) => { bar.classList.toggle('open', o); b.setAttribute('aria-expanded', o); };
+  b.addEventListener('click', () => set(!bar.classList.contains('open')));
+  bar.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); }); })();
+</script>
 </body>
 </html>

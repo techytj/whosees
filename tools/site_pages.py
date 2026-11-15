@@ -7,17 +7,17 @@ import datetime, html, json, os
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'website')
 SITE = 'https://whosees.app'
 REL = 'https://github.com/techytj/whosees/releases/latest/download/'
-CSS_V = 4
+CSS_V = 10
 TODAY = datetime.date.today().isoformat()
 UMAMI = '<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>'
 
 NAV = ('<a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a>'
-       '<a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>')
+       '<a href="/guides/">Guides</a><a class="coffee-link" href="/#support" data-umami-event="coffee-menu"><svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Buy me a coffee</a>')
 
 FOOTER = '''<footer><div class="wrap">
   <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
   <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
-  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>'''
 
 
@@ -34,7 +34,7 @@ def side(extra=''):
   {extra}</aside>'''
 
 
-def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=None, kicker=''):
+def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=None, kicker='', doc_class=''):
     url = f'{SITE}/{path}'
     crumbs = [('Home', SITE + '/')] + crumb + [(h1 if len(h1) < 60 else title.split(':')[0], url)]
     ld = [{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
@@ -67,7 +67,9 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 <body>
 <header class="bar"><div class="wrap">
   <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
-  <nav>{NAV}</nav>
+  <nav id="menu">{NAV}</nav>
+  <a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div></header>
 <main class="page"><div class="wrap">
   <div class="crumbs mono">{crumb_html}</div>
@@ -77,13 +79,21 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
     <p class="lead">{lead}</p>
     {f'<div class="ctas">{ctas}</div>' if ctas else ''}
   </div>
-  <div class="doc"><article>
+  <div class="doc{(" " + doc_class) if doc_class else ""}"><article>
 {body}
   </article>
   {side_html if side_html is not None else side()}
   </div>
 </div></main>
 {FOOTER}
+<script>
+// phone menu: the links fold into a ☰ button on narrow screens
+(() => {{ const bar = document.querySelector('.bar'), b = bar.querySelector('.menu-btn');
+  const set = (o) => {{ bar.classList.toggle('open', o); b.setAttribute('aria-expanded', o); }};
+  b.addEventListener('click', () => set(!bar.classList.contains('open')));
+  bar.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', (e) => {{ if (e.key === 'Escape') set(false); }}); }})();
+</script>
 </body>
 </html>
 '''
@@ -95,7 +105,7 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 
 def app_ld(os_name, file):
     return {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": f"WhoSees for {os_name}",
-            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.1.0",
+            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.1.1",
             "downloadUrl": REL + file, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
             "license": "https://www.gnu.org/licenses/gpl-3.0.html", "url": SITE + '/',
             "author": {"@type": "Person", "name": "TechyTJ", "url": "https://github.com/techytj"}}
@@ -108,6 +118,23 @@ def faq_ld(pairs):
 
 def faq_html(pairs):
     return '<h2>Questions</h2>\n' + '\n'.join(f'<h3>{html.escape(q)}</h3><p>{html.escape(a)}</p>' for q, a in pairs)
+
+
+# figures with numbered markers (screenshots from tools/guide_shots.py and tools/android_install_shots.py)
+MARKS = json.load(open(os.path.join(ROOT, 'img', 'guide', 'marks.json')))
+
+def fig(name, caption, keys, phone=False, src=None):
+    m = MARKS.get(('i-' + name) if src else name, {})
+    dots = ''.join(f'<span class="mk" style="left:{m[k][0]}%;top:{m[k][1]}%">{k}</span>' for k in keys if k in m)
+    w, h = (540, 1200) if phone else (1440, 900)
+    key_html = ''.join(f'<li><span class="mk-n">{k}</span><span>{t}</span></li>' for k, t in sorted(keys.items()) if k in m)
+    return (f'<figure class="gfig{" phone" if phone else ""}"><div class="shot"><img src="{src or f'/img/guide/{name}.webp'}" alt="{html.escape(caption)}" width="{w}" height="{h}" loading="lazy">{dots}</div>'
+            f'<figcaption>{caption}</figcaption>{f"<ol class=keys>{key_html}</ol>" if key_html else ""}</figure>')
+
+def phones(*figs): return '<div class="phones">' + ''.join(figs) + '</div>'
+
+def ishot(name, caption, keys):  # Android install pictures
+    return fig(name, caption, keys, True, src=f'/img/guide/install/{name}.webp')
 
 
 SHOWS = '''<ul>
@@ -126,6 +153,8 @@ android_faq = [
     ("Is WhoSees a VPN service?", "No. Android calls it a VPN because that's the only way an app can see where other apps send data. Everything stays on your phone: nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway."),
     ("Will it drain my battery?", "Only while it's running. WhoSees runs only while you have a live view on, and stops completely when you press Stop."),
     ("Is WhoSees on Google Play?", "Not yet. For now, install it from this page. A Google Play version is planned."),
+    ("Do I need Developer options to install WhoSees?", "Usually not. Most phones only need you to allow your browser to install apps. Developer options are only needed where Android requires apps from verified developers (Brazil, Indonesia, Singapore and Thailand since September 2026, and everywhere from 2027), or if you install from a computer."),
+    ("Is it safe to allow installing unknown apps?", "Allowing one app, like your browser, to install apps is safe as long as you only install apps you trust. You can turn the permission off again right after installing WhoSees."),
 ]
 pages.append(page('android/', 'WhoSees for Android: see which apps are tracking you',
     'Free, open-source app for Android 10 and newer that shows which apps send data, to which companies and where, live on a map. No root, no account, nothing leaves your phone.',
@@ -133,13 +162,61 @@ pages.append(page('android/', 'WhoSees for Android: see which apps are tracking 
     'WhoSees shows, live on a map, which app on your phone is sending data, which company receives it, and where in the world it goes. Free, open source, no root and no account.',
     f'''<h2>What you'll see</h2>
 {SHOWS}
-<h2>How to install WhoSees on Android</h2>
-<ol>
-<li>On your phone, tap <b>Download for Android</b> above to get <code>WhoSees-Android.apk</code> (about 80 MB).</li>
-<li>Open the downloaded file. If Android says your browser isn't allowed to install apps, tap <b>Settings</b>, turn on <b>Allow from this source</b>, then go back.</li>
-<li>Tap <b>Install</b>. Because WhoSees isn't on Google Play yet, Google Play Protect may ask you to scan the app or confirm. Choose to install it.</li>
-<li>Open WhoSees, set your city if asked, and tap <b>Start live view</b>.</li>
-</ol>
+<h2 id="install">How to install WhoSees on Android, step by step</h2>
+<p>WhoSees isn't on Google Play yet, so you install it from this page. It takes about two minutes. The pictures are from a phone running Android 16 with Chrome; other phones look a little different but the steps are the same.</p>
+<div class="box"><b class="mono">BEFORE YOU START</b><p>You need Android 10 or newer and about 200 MB free. You do <b>not</b> need to root your phone, and on most phones you do <b>not</b> need Developer options (see <a href="#developer">when you might</a>).</p></div>
+
+<h3>1. Download the app</h3>
+<p>On your phone, open this page in Chrome (or your usual browser) and tap <b>Download for Android</b>. The file is called <code>WhoSees-Android.apk</code> and is about 80 MB.</p>
+{phones(ishot('a-page', 'This page in Chrome', {'1': 'Tap <b>Download for Android</b>.'}))}
+
+<h3>2. Open the downloaded file</h3>
+<p>When the download finishes, open it in one of these ways:</p>
+<ul><li>Swipe down from the top of the screen and tap the <b>Download complete</b> notification for <code>WhoSees-Android.apk</code>.</li>
+<li>Or in Chrome tap <b>⋮ → Downloads</b> and tap the file.</li>
+<li>Or open the <b>Files</b> app (Samsung: <b>My Files</b>), go to <b>Downloads</b> and tap the file.</li></ul>
+<p>If your browser asks whether to keep a file of this type, choose <b>Download anyway</b>.</p>
+{phones(ishot('c-notification', 'The download notification', {'1': 'Tap the finished download.'}))}
+
+<h3>3. Allow your browser to install apps (first time only)</h3>
+<p>Android protects you from apps installed outside the Play Store, so the first time it asks for permission:</p>
+<ol><li>Android says <i>"For your security, your phone currently isn't allowed to install unknown apps from this source."</i> Tap <b>Settings</b>.</li>
+<li>Turn on <b>Allow from this source</b>. This only lets your browser install apps you choose to open; you can turn it off again afterwards.</li>
+<li>The install question comes back on its own (on some phones, press <b>Back</b>).</li></ol>
+{phones(ishot('d-blocked', 'Android asks first', {'1': 'Tap <b>Settings</b>.'}), ishot('e-allow', 'Install unknown apps', {'1': 'Turn on <b>Allow from this source</b>.'}))}
+
+<h3>4. Install</h3>
+<ol><li>Android asks <i>"Do you want to install this app?"</i> Tap <b>Install</b>.</li>
+<li>When it says <b>App installed</b>, tap <b>Open</b>.</li></ol>
+{phones(ishot('g-install', 'The install question', {'1': 'Tap <b>Install</b>.'}), ishot('i-done', 'Installed', {'1': 'Tap <b>Open</b>.'}))}
+
+<h3>5. Start WhoSees</h3>
+<p>Choose whether WhoSees may check for updates (it's off unless you turn it on), set your city if asked, and tap <b>Start live view</b>. Android then asks to allow a VPN: tap <b>OK</b>. The <a href="/guide/#live">user guide</a> shows what happens next.</p>
+
+<h2 id="blocked">If something blocks the install</h2>
+<h3>Google Play Protect</h3>
+<p>Google Play Protect checks apps installed from outside the Play Store. For a new app it may show one of these:</p>
+<ul><li><b>"App scan recommended"</b>: tap <b>Scan app</b>. WhoSees is open source and contains nothing harmful, so it installs after the scan. You can also choose <b>Install without scanning</b>.</li>
+<li><b>"Unsafe app blocked"</b> or <b>"Harmful app blocked"</b>: tap <b>More details</b>, then <b>Install anyway</b>. Play Protect is cautious with apps it hasn't seen before, and apps that use a VPN look unusual to it.</li></ul>
+<h3>Samsung phones: Auto Blocker</h3>
+<p>Many Samsung Galaxy phones have <b>Auto Blocker</b> turned on, which stops any app from outside Google Play or the Galaxy Store, with no "install anyway" button. To install WhoSees:</p>
+<ol><li>Open <b>Settings → Security and privacy → Auto Blocker</b>.</li>
+<li>Turn it <b>off</b>, then install WhoSees as above.</li>
+<li>Turn Auto Blocker back <b>on</b> afterwards if you like. WhoSees keeps working. (Newer Samsung software may turn it back on by itself after a while.)</li></ol>
+<p>Other phone makers have similar switches, for example Xiaomi's <b>Install via USB</b> or security scan prompts. If an install is blocked with no way forward, look in <b>Settings → Security</b>.</p>
+
+<h3 id="developer">"App from an unverified developer" and Developer options</h3>
+<p>Google is changing how apps from outside the Play Store are installed. Since <b>September 30, 2026</b> in <b>Brazil, Indonesia, Singapore and Thailand</b>, and in every country from <b>2027</b>, Android only installs apps from developers who have verified their identity with Google, unless you choose to allow others. If Android tells you WhoSees is from an <b>unverified developer</b> and won't install it, you can allow it once through Developer options:</p>
+<ol><li><b>Turn on Developer options.</b> Open <b>Settings → About phone</b> (Samsung: <b>Settings → About phone → Software information</b>) and tap <b>Build number</b> seven times. Enter your PIN if asked. Android says <b>"You are now a developer!"</b></li>
+<li>Open <b>Settings → System → Developer options</b> (Samsung: Developer options is at the bottom of Settings).</li>
+<li>Find <b>Apps from unverified developers</b>, turn it on, and confirm that nobody is asking you to do this.</li>
+<li>Restart your phone. Android then makes you wait <b>24 hours</b> (once per phone), a safety measure against scammers who pressure people over the phone.</li>
+<li>After the wait, go back to the same setting, confirm with your fingerprint, face or PIN, and choose <b>Allow temporarily</b> (7 days) or <b>Allow indefinitely</b>.</li>
+<li>Install WhoSees as above. When Android warns about the unverified developer, tap <b>Install anyway</b>.</li>
+<li>You can turn Developer options off again afterwards: <b>Developer options → Use developer options → off</b>.</li></ol>
+{phones(ishot('j-build', 'About phone, Build number at the bottom', {'1': 'Tap <b>Build number</b> seven times.'}), ishot('k-developer', '"You are now a developer!"', {'1': 'The message appears here.'}), ishot('l-devoptions', 'Developer options is now in Settings', {}))}
+<div class="box"><b class="mono">ANOTHER WAY: FROM A COMPUTER</b><p>If you're comfortable with a computer, you can install with Android's own tools instead, which skips the waiting period: turn on <b>Developer options → USB debugging</b>, connect the phone, and run <code>adb install WhoSees-Android.apk</code>. Turn USB debugging off again when you're done.</p></div>
+<p>Outside the countries listed above, none of this is needed yet: the normal steps work.</p>
 <h2>Why Android asks to "set up a VPN connection"</h2>
 <p>The first time you press Start, Android asks whether WhoSees may set up a VPN connection. Tap <b>OK</b>. A VPN is the only way Android lets an app see where other apps send data.</p>
 <div class="box"><b class="mono">IT STAYS ON YOUR PHONE</b><p>WhoSees isn't a VPN service. Your traffic isn't sent to any server: WhoSees notes where each connection goes and passes it straight on, so your apps work exactly as before. You'll see a key icon while it runs, and it stops the moment you press Stop.</p></div>
@@ -151,7 +228,15 @@ pages.append(page('android/', 'WhoSees for Android: see which apps are tracking 
 <tr><td>Phone</td><td>64-bit (almost every phone from the last several years)</td></tr>
 <tr><td>Space</td><td>About 80 MB to download</td></tr></table>
 <h2>Updating and uninstalling</h2>
-<p>To update, download the newest version from this page and install it over the old one. Your settings are kept. To remove WhoSees: <b>Settings → Apps → WhoSees → Uninstall</b>.</p>
+<p>To update, download the newest version from this page and install it over the old one, following the same steps; your settings are kept. WhoSees can also tell you when a new version is out if you turn on <b>Settings → Check for updates</b>. To remove WhoSees: <b>Settings → Apps → WhoSees → Uninstall</b>.</p>
+<h2 id="trouble">Install problems</h2>
+<table><tr><th>WHAT YOU SEE</th><th>WHAT TO DO</th></tr>
+<tr><td>"App not installed" or "conflicts with an existing package"</td><td>An older test version of WhoSees is installed. Uninstall it first, then install again.</td></tr>
+<tr><td>"There was a problem parsing the package"</td><td>The download didn't finish. Delete the file from Downloads and download it again.</td></tr>
+<tr><td>The install is blocked with no button to continue</td><td>On Samsung, turn off <b>Auto Blocker</b> (see <a href="#blocked">above</a>). Otherwise check <b>Settings → Security</b>.</td></tr>
+<tr><td>Can't find "Install unknown apps"</td><td>Open <b>Settings → Apps → Special app access → Install unknown apps</b>, pick your browser or Files app, and turn on <b>Allow from this source</b>.</td></tr>
+<tr><td>"App from an unverified developer"</td><td>See <a href="#developer">Developer options</a> above.</td></tr>
+<tr><td>Nothing happens when tapping the download</td><td>Open the <b>Files</b> app → <b>Downloads</b> and tap <code>WhoSees-Android.apk</code> there.</td></tr></table>
 {faq_html(android_faq)}''',
     [app_ld('Android 10+', 'WhoSees-Android.apk'), faq_ld(android_faq)], btn('android', 'Download for Android'), kicker='ANDROID'))
 
@@ -285,7 +370,8 @@ pages += [g1, g2]
 pages.append(page('guides/', 'Guides: app tracking and phone privacy, in plain English',
     'Short, plain-English guides about which apps are tracking you, Private DNS, and how to keep your data private on Android, iPhone and Windows.',
     [], 'Guides', 'Short, plain-English guides about apps, tracking and keeping your data private.',
-    '''<div class="cards" style="grid-template-columns:1fr 1fr">
+    '''<div class="cards two">
+<a href="/guide/"><b>The WhoSees user guide</b><span>Step by step, with pictures: starting a live view, reading the map, finding out what an app sends, warnings, settings and troubleshooting.</span><em>OPEN THE USER GUIDE →</em></a>
 <a href="/guides/which-apps-are-tracking-me/"><b>How to see which apps are tracking you</b><span>Find out which apps share your data with advertisers and trackers on Android, iPhone and Windows, and what to do about it.</span><em>READ THE GUIDE →</em></a>
 <a href="/guides/private-dns-android/"><b>What is Private DNS on Android?</b><span>What it does, the three settings, how to change it on Samsung and Pixel, and when to turn it off.</span><em>READ THE GUIDE →</em></a>
 </div>''', kicker='GUIDES'))
@@ -296,12 +382,13 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
     [], 'Privacy policy', 'The short version: the WhoSees app sends nothing anywhere, and this website counts visits privately, without cookies.',
     f'''<p class="mono" style="font-size:13px">Last updated {TODAY}</p>
 <h2>The WhoSees app</h2>
-<p><b>WhoSees does not collect, send or sell any of your information.</b> Everything it shows is worked out on your own device, and nothing is sent to us or to anyone else.</p>
+<p><b>WhoSees does not collect, send or sell any of your information.</b> Everything it shows is worked out on your own device, and nothing is sent to us or to anyone else. The only request WhoSees ever makes on its own is the optional update check described below, which is off unless you turn it on.</p>
 <ul>
 <li><b>What it looks at:</b> while a live view is running, the details of your device's network connections: which app made them, the address and port they go to, the website name when it's visible, and how much data was sent. For data sent without encryption, it checks the parts needed to say what kind of data it was (for example a location). It does not read the contents of encrypted traffic.</li>
 <li><b>Where that goes:</b> nowhere. It's shown on your screen and discarded when you press Stop or close WhoSees.</li>
 <li><b>What it saves:</b> only your settings (such as your home city and display preferences), stored on your device.</li>
 <li><b>Lists it uses:</b> the IP-location, tracker and threat lists are built into the app and used offline. WhoSees doesn't look anything up online.</li>
+<li><b>Update checks (off unless you turn them on):</b> the first time you open WhoSees, it asks whether you'd like it to check for updates. If you say yes, once a day when you open it, WhoSees downloads one small public file, <a href="/version.json">whosees.app/version.json</a>, that lists the newest version. Like visiting any website, that request reveals your internet address. Nothing else is sent: no ID, no list of your apps, nothing about what WhoSees shows you. Our server doesn't keep a log of these requests. You can turn this off any time in Settings.</li>
 <li><b>Links:</b> the website, source code and "buy me a coffee" links open in your browser only when you click them.</li>
 </ul>
 <h3>Android permissions</h3>
@@ -309,7 +396,7 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
 <tr><td>VPN</td><td>The only way Android lets an app see where other apps send data. Traffic stays on your phone and goes on to where it was going; nothing goes to a VPN server.</td></tr>
 <tr><td>See installed apps</td><td>To show each app's real name and icon instead of a number.</td></tr>
 <tr><td>Notifications</td><td>To warn you if an app connects to a dangerous website while WhoSees is running.</td></tr>
-<tr><td>Internet</td><td>To pass your apps' traffic on to where it was going.</td></tr>
+<tr><td>Internet</td><td>To pass your apps' traffic on to where it was going, and, only if you turned it on, to check for updates.</td></tr>
 <tr><td>Network state</td><td>To know whether you're on Wi-Fi or mobile data, so apps behave the same as without WhoSees.</td></tr></table>
 <h3>Windows and Linux</h3>
 <p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
@@ -325,8 +412,153 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
 <p>If this policy changes, the new version will be posted on this page with a new date. Because WhoSees is open source, you can always check what the app does in its <a href="https://github.com/techytj/whosees">source code</a>.</p>''',
     [], side_html=side(), kicker='PRIVACY'))
 
+
+# ---------------------------------------------------------------- User guide (screenshots from tools/guide_shots.py)
+
+
+TOC = [('start', 'Getting started'), ('live', 'Start a live view'), ('map', 'Read the live map'), ('apps', 'See which apps send the most'),
+       ('app', 'Find out what an app sends'), ('place', 'Check a place on the map'), ('companies', 'See every company and country'),
+       ('feed', 'Watch connections as they happen'), ('search', 'Search'), ('expert', 'Technical details (Expert)'),
+       ('alerts', 'When WhoSees warns you'), ('privatedns', 'Missing website names (Android)'), ('settings', 'Settings'),
+       ('stop', 'Stop WhoSees'), ('support', 'Support WhoSees'), ('trouble', 'Troubleshooting')]
+toc_html = ''.join(f'<a href="#{i}">{html.escape(t)}</a>' for i, t in TOC)
+guide_side = f'<aside class="side toc"><h4>IN THIS GUIDE</h4>{toc_html}<a class="btn" href="/#get">Download WhoSees <span class="k">↓</span></a></aside>'
+
+guide_faq = [
+    ("I pressed Start but nothing appears.", "WhoSees shows connections as they happen. Open a few apps, a website or a video, and they'll appear within seconds."),
+    ("Does WhoSees slow down my internet?", "No. It only notes where each connection goes. Streaming, browsing and downloads run at normal speed."),
+    ("Can WhoSees read my messages or passwords?", "No. It sees where your data goes, never what's inside encrypted traffic."),
+]
+guide_body = f"""
+<nav class="toc-m mono"><b>IN THIS GUIDE</b>{toc_html}</nav>
+
+<h2 id="start">Getting started</h2>
+<p>First install WhoSees: see the step-by-step install pages for <a href="/android/">Android</a>, <a href="/windows/">Windows</a> and <a href="/linux/">Linux</a>. Then open it. You'll see the start screen:</p>
+{fig('d-start', 'The start screen on a computer', {'1': '<b>Start live view</b> begins watching. Nothing runs until you press it.', '2': '<b>Deep mode</b> switch (computers only): adds website names and catches every connection. More below.', '3': '<b>Your location</b>: where the lines on the map start from.'})}
+<h3>Set your location</h3>
+<ol><li>Click or tap the place name next to <b>Your location</b> (or open <b>Settings → Your location → Change</b>).</li>
+<li>Start typing your city and pick it from the list. WhoSees looks it up on your device; it isn't sent anywhere.</li></ol>
+{fig('d-location', 'Choosing your city', {'1': 'Type your city, then pick it from the list.'})}
+<h3>Update checks</h3>
+<p>The first time you open WhoSees, it asks whether you'd like it to check for updates. It's <b>off</b> unless you choose <b>Turn on update checks</b>. If you do, once a day when you open WhoSees it asks whosees.app for the newest version number. That request shows your internet address, like visiting any website, and nothing else. When a newer version is out, a short note appears with a <b>Download</b> button that opens the right page; WhoSees never installs anything by itself. You can change this any time in Settings.</p>
+{phones(fig('p-updates', 'The first-launch question about update checks', {'1': '<b>No thanks</b> keeps it off.', '2': '<b>Turn on update checks</b>'}, True))}
+
+<h2 id="live">Start a live view</h2>
+<h3>On a computer</h3>
+<ol><li>Press <b>Start live view</b>.</li>
+<li>In <b>Standard</b> mode it starts right away, no password needed.</li>
+<li>With <b>Deep mode</b> on, WhoSees first explains what's about to happen. Click <b>Continue</b>, then approve the request: Windows shows a Yes/No prompt; Linux asks for the password you log in with. Your password goes to your system, never to WhoSees.</li></ol>
+{fig('d-deepask', 'Before Deep mode asks your system for permission', {'1': '<b>Continue</b> to Deep mode.', '2': '<b>Use Standard mode</b> instead (no password).'})}
+<div class="box"><b class="mono">STANDARD OR DEEP?</b><p><b>Standard</b> shows apps, companies and places. <b>Deep</b> adds the names of the websites, labels trackers more precisely and catches very short connections. Both only look at where data goes, never what's inside it.</p></div>
+<h3>On an Android phone</h3>
+<ol><li>Tap <b>Start live view</b>.</li>
+<li>The first time, WhoSees explains that Android will ask about a VPN. Tap <b>Continue</b>.</li>
+<li>Android asks <i>"WhoSees wants to set up a VPN connection"</i>. Tap <b>OK</b>. The VPN stays on your phone: nothing is sent to a VPN server.</li></ol>
+{phones(fig('p-start', 'Start screen on a phone', {'1': '<b>Start live view</b>', '2': '<b>Your location</b>'}, True),
+        fig('p-vpnexplain', 'WhoSees explains the VPN question first', {'1': 'Tap <b>Continue</b>.'}, True),
+        fig('p-vpnsystem', "Android's own question", {'1': 'Tap <b>OK</b>.'}, True))}
+
+<h2 id="map">Read the live map</h2>
+<p>Within seconds, lines start flying from your location to the places your apps send data to. Each colour is a kind of company.</p>
+{fig('d-map', 'A live view on a computer', {'1': '<b>Totals</b>: how fast data is leaving now, how much has been sent, how many places and countries, and how many are trackers or advertisers.', '2': '<b>You</b>: your location. Every line starts here.', '3': '<b>A destination</b>: a company in another city. Brighter lines are active right now.', '4': '<b>Colour key</b>: what the colours mean. Click a colour to hide or show that kind.', '5': '<b>Tabs</b>: Apps, Feed, Places and Alerts.', '6': '<b>Stop</b> turns WhoSees off.'})}
+<p>On a phone, the same things are stacked: the map on top, and a panel underneath you can tap the little handle on to make it bigger or smaller.</p>
+{phones(fig('p-live', 'A live view on a phone', {'1': '<b>Totals</b>', '2': '<b>You</b>', '3': '<b>Tabs</b>', '4': '<b>Stop</b>'}, True))}
+
+<h2 id="apps">See which apps send the most</h2>
+<ol><li>Open the <b>Apps</b> tab. Apps are sorted by how much they've sent.</li>
+<li>Each row says how many places and countries the app talks to, and the main company.</li>
+<li>A red <b>TRACKER</b> label means the app talks to tracking or advertising companies.</li></ol>
+{fig('d-apps', 'The Apps tab', {'1': 'An app, with the places and company it talks to. Click it for details.', '2': '<b>Tracker</b> label', '3': '<b>Search</b> apps, companies or countries.'})}
+
+<h2 id="app">Find out what an app sends</h2>
+<ol><li>In the <b>Apps</b> tab, click or tap an app.</li>
+<li>Read the plain-English summary at the top.</li>
+<li>Under <b>What this app sent</b>: <b>Seen</b> means WhoSees read it in data sent without encryption (like your location). <b>Likely</b> means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives.</li>
+<li>The <b>Privacy report</b> gives a simple grade (Good, Fair or Poor) and why.</li>
+<li>Scroll down to see every place it sent data, then press <b>Back</b>.</li></ol>
+{fig('d-appdetail', "An app's details", {'4': '<b>Back</b> to the list.', '1': 'A plain-English summary.', '3': '<b>What this app sent</b>: Seen and Likely.', '2': '<b>Privacy report</b> grade.'})}
+{phones(fig('p-appdetail', 'The same on a phone (the panel is expanded)', {'1': 'Summary', '3': 'What it sent', '2': 'Privacy grade'}, True))}
+
+<h2 id="place">Check a place on the map</h2>
+<p>On a computer, point at any dot. On a phone, tap it. A card shows the city, the company, what it likely receives, and which of your apps send data there.</p>
+{fig('d-hover', 'Pointing at a place', {'1': 'Point at (or tap) a dot.', '2': 'The city, company, likely data, and the apps sending there.'})}
+
+<h2 id="companies">See every company and country</h2>
+<p>Open the <b>Places</b> tab for a list of every company and place your data went, with a flag for each country. Click one to see which apps sent data there.</p>
+{fig('d-places', 'The Places tab', {'1': '<b>Places</b> tab', '2': 'A company in a city, with how much was sent.'})}
+
+<h2 id="feed">Watch connections as they happen</h2>
+<p>The <b>Feed</b> tab lists each connection the moment it happens, newest first: which app, which company and where.</p>
+{fig('d-feed', 'The Feed tab', {'1': '<b>Feed</b> tab', '2': 'The newest connection.'})}
+
+<h2 id="search">Search</h2>
+<p>Type in the search box above the list to find an app, a company or a country, for example <i>google</i> or <i>Ireland</i>. The list and the map show only what matches.</p>
+{fig('d-search', 'Searching for "google"', {'1': 'Type here.', '2': 'Only matching results are shown.'})}
+
+<h2 id="expert">Technical details (Expert)</h2>
+<p>Switch from <b>Simple</b> to <b>Expert</b> at the top to see network addresses, ports, protocols and exact byte counts. Switch back to <b>Simple</b> any time.</p>
+{fig('d-expert', 'Expert view', {'1': '<b>Expert</b> switch', '2': 'Technical details for each connection.'})}
+
+<h2 id="alerts">When WhoSees warns you</h2>
+<p>If an app connects to a known scam or malware website, or does something suspicious, a warning appears at once. On a phone you also get a notification.</p>
+<ol><li>Read the warning: it says which app, where it connected and why that matters.</li>
+<li>Press <b>Details</b> to see that app or place, or <b>Got it</b> if you recognise it and it's fine.</li>
+<li>If you don't recognise the app, remove it. On a computer, if it runs from your Downloads or a temporary folder, close it and delete the file.</li>
+<li>All warnings are kept in the <b>Alerts</b> tab until you stop.</li></ol>
+{fig('d-alertcard', 'A warning on a computer', {'1': 'The warning.', '2': '<b>Got it</b> marks it as seen.', '3': 'The alert badge: click to see all warnings.'})}
+{phones(fig('p-alert', 'A warning on a phone', {'1': 'The warning.', '2': '<b>Got it</b>'}, True))}
+{fig('d-alerts', 'The Alerts tab', {'1': '<b>Alerts</b> tab', '2': 'Every warning from this session.'})}
+
+<h2 id="privatedns">Missing website names on Android (Private DNS)</h2>
+<p>If your phone uses <b>Private DNS</b> with a named provider, website names are encrypted before WhoSees can see them. WhoSees tells you when you press Start:</p>
+<ol><li>To see website names, tap <b>Open Settings</b>, search for <b>Private DNS</b>, choose <b>Off</b>, then come back and press Start.</li>
+<li>Or tap <b>Start anyway</b>: you'll still see the app, company and country.</li>
+<li>Turn Private DNS back on when you're done. WhoSees reminds you when you press Stop.</li></ol>
+{phones(fig('p-privatedns', 'The Private DNS notice', {'1': '<b>Open Settings</b>', '2': '<b>Start anyway</b>'}, True))}
+<p>More in <a href="/guides/private-dns-android/">What is Private DNS on Android?</a></p>
+
+<h2 id="settings">Settings</h2>
+<p>Click or tap the <b>gear</b> at the top right.</p>
+<table><tr><th>SETTING</th><th>WHAT IT DOES</th></tr>
+<tr><td>Appearance</td><td>Follow your system, or always dark or light.</td></tr>
+<tr><td>Your location</td><td>Where the lines start from. <b>Change</b> to pick another city.</td></tr>
+<tr><td>Deep mode</td><td>(Computers) Website names and every connection; asks for permission each time you press Start.</td></tr>
+<tr><td>Threat alerts</td><td>Warn about dangerous websites, malware servers and suspicious behaviour. On by default.</td></tr>
+<tr><td>Include local network</td><td>Also list devices in your home, like printers and TVs.</td></tr>
+<tr><td>Check for updates</td><td>Off unless you turn it on. When on, once a day when you open WhoSees it asks whosees.app for the newest version number and tells you if there's a newer one. <b>Check now</b> checks straight away.</td></tr>
+<tr><td>About</td><td>Version, data credits and <b>Open-source licences</b>.</td></tr></table>
+{fig('d-settings', 'Settings', {'1': 'The <b>gear</b> opens Settings.'})}
+
+<h2 id="stop">Stop WhoSees</h2>
+<p>Press <b>Stop</b> at the bottom of the map. WhoSees stops completely: nothing keeps running in the background. Closing the app does the same. On Android the VPN key icon disappears.</p>
+
+<h2 id="support">Support WhoSees</h2>
+<p>Every feature is free. If WhoSees is useful to you, open <b>Settings → Support WhoSees</b> (or the <a href="/#support">coffee section</a> on this website) and pick $5, $10 or $15. It opens PayPal in your browser; WhoSees never sees your payment details, and tipping doesn't change anything in the app.</p>
+{fig('d-support', 'Buy me a coffee', {'1': 'Pick an amount to open PayPal.'})}
+
+<h2 id="trouble">Troubleshooting</h2>
+<table><tr><th>PROBLEM</th><th>WHAT TO DO</th></tr>
+<tr><td>Nothing appears after Start</td><td>Use a few apps or open a website; connections appear within seconds.</td></tr>
+<tr><td>The password window doesn't appear (Linux)</td><td>It may be behind the WhoSees window. Check your taskbar.</td></tr>
+<tr><td>"Deep mode didn't start"</td><td>The password was wrong or the window was closed. Choose <b>Try again</b>, or <b>Keep Standard view</b>.</td></tr>
+<tr><td>Windows says "Windows protected your PC" when installing</td><td>Click <b>More info</b>, then <b>Run anyway</b>. <a href="/windows/">Why this happens</a>.</td></tr>
+<tr><td>"Is another VPN app on?" (Android)</td><td>Android allows one VPN at a time. Turn off the other VPN app, then press Start.</td></tr>
+<tr><td>No website names (Android)</td><td>Private DNS is on. See <a href="#privatedns">above</a>.</td></tr>
+<tr><td>An app shows as "Windows service" or "Short-lived program"</td><td>A protected Windows service, or a program that ran for only a moment. Deep mode names more of them.</td></tr></table>
+{faq_html(guide_faq)}
+"""
+pages.append(page('guide/', 'WhoSees user guide: step by step, with pictures',
+    'How to use WhoSees step by step: start a live view, read the map, find out what each app sends, handle warnings, change settings and fix common problems. With screenshots.',
+    [], 'WhoSees user guide',
+    'Everything you can do with WhoSees, step by step, with pictures from the app on a computer and an Android phone.',
+    guide_body,
+    [{"@context": "https://schema.org", "@type": "TechArticle", "headline": "WhoSees user guide", "datePublished": "2026-11-15", "dateModified": TODAY,
+      "author": {"@type": "Person", "name": "TechyTJ"}, "publisher": {"@type": "Organization", "name": "WhoSees", "logo": {"@type": "ImageObject", "url": SITE + "/img/icon.png"}},
+      "image": SITE + "/img/guide/d-map.webp", "mainEntityOfPage": SITE + "/guide/"}, faq_ld(guide_faq)],
+    side_html=guide_side, kicker='USER GUIDE', doc_class='guide'))
+
 # ---------------------------------------------------------------- sitemap
-urls = [('', '1.0', 'weekly')] + [(p, '0.8' if p in ('android/', 'windows/', 'linux/') else '0.6', 'monthly') for p in pages]
+urls = [('', '1.0', 'weekly')] + [(p, '0.8' if p in ('android/', 'windows/', 'linux/', 'guide/') else '0.6', 'monthly') for p in pages]
 open(os.path.join(ROOT, 'sitemap.xml'), 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     ''.join(f'  <url><loc>{SITE}/{p}</loc><lastmod>{TODAY}</lastmod><changefreq>{f}</changefreq><priority>{pr}</priority></url>\n' for p, pr, f in urls) + '</urlset>\n')
 print(f'{len(pages)} pages + sitemap ({len(urls)} URLs)')

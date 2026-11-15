@@ -62,6 +62,19 @@ try:
 except Exception: pass
 check('Private DNS probe answered at once (Android falls back fast)', time.time() - t0 < 1.5, time.time() - t0)
 check('connection through the VPN works', tls('ads.doubleclick.net', ip))
+# An app that uploads and then closes at once (very common) must have every byte delivered.
+def upload(n):
+    try:
+        c = socket.create_connection(('142.250.65.78', 4445), timeout=5); c.sendall(b'u' * n); c.shutdown(socket.SHUT_WR)
+        got = b''
+        while True:
+            d = c.recv(64)
+            if not d: break
+            got += d
+        c.close(); return int(got or b'-1')
+    except Exception as e: return repr(e)
+res = [upload(n) for n in (5000, 70000, 300000) * 4]
+check('upload then close: every byte reaches the server', res == [5000, 70000, 300000] * 4, res)
 wait(lambda: any(o['remote'] == ip for o in opens()))
 o = next((o for o in opens() if o['remote'] == ip), {})
 check('website name from TLS', o.get('host') == 'ads.doubleclick.net', o.get('host'))

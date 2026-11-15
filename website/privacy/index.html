@@ -18,14 +18,16 @@
 <link rel="icon" href="/img/favicon.png">
 <link rel="apple-touch-icon" href="/img/icon.png">
 <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=4">
+<link rel="stylesheet" href="/css/site.css?v=10">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"Privacy policy","item":"https://whosees.app/privacy/"}]}]</script>
 <script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
 </head>
 <body>
 <header class="bar"><div class="wrap">
   <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
-  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+  <nav id="menu"><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="coffee-link" href="/#support" data-umami-event="coffee-menu"><svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>Buy me a coffee</a></nav>
+  <a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a>
+  <button class="menu-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
 </div></header>
 <main class="page"><div class="wrap">
   <div class="crumbs mono"><a href="/">Home</a></div>
@@ -36,14 +38,15 @@
     
   </div>
   <div class="doc"><article>
-<p class="mono" style="font-size:13px">Last updated 2026-11-14</p>
+<p class="mono" style="font-size:13px">Last updated 2026-11-15</p>
 <h2>The WhoSees app</h2>
-<p><b>WhoSees does not collect, send or sell any of your information.</b> Everything it shows is worked out on your own device, and nothing is sent to us or to anyone else.</p>
+<p><b>WhoSees does not collect, send or sell any of your information.</b> Everything it shows is worked out on your own device, and nothing is sent to us or to anyone else. The only request WhoSees ever makes on its own is the optional update check described below, which is off unless you turn it on.</p>
 <ul>
 <li><b>What it looks at:</b> while a live view is running, the details of your device's network connections: which app made them, the address and port they go to, the website name when it's visible, and how much data was sent. For data sent without encryption, it checks the parts needed to say what kind of data it was (for example a location). It does not read the contents of encrypted traffic.</li>
 <li><b>Where that goes:</b> nowhere. It's shown on your screen and discarded when you press Stop or close WhoSees.</li>
 <li><b>What it saves:</b> only your settings (such as your home city and display preferences), stored on your device.</li>
 <li><b>Lists it uses:</b> the IP-location, tracker and threat lists are built into the app and used offline. WhoSees doesn't look anything up online.</li>
+<li><b>Update checks (off unless you turn them on):</b> the first time you open WhoSees, it asks whether you'd like it to check for updates. If you say yes, once a day when you open it, WhoSees downloads one small public file, <a href="/version.json">whosees.app/version.json</a>, that lists the newest version. Like visiting any website, that request reveals your internet address. Nothing else is sent: no ID, no list of your apps, nothing about what WhoSees shows you. Our server doesn't keep a log of these requests. You can turn this off any time in Settings.</li>
 <li><b>Links:</b> the website, source code and "buy me a coffee" links open in your browser only when you click them.</li>
 </ul>
 <h3>Android permissions</h3>
@@ -51,7 +54,7 @@
 <tr><td>VPN</td><td>The only way Android lets an app see where other apps send data. Traffic stays on your phone and goes on to where it was going; nothing goes to a VPN server.</td></tr>
 <tr><td>See installed apps</td><td>To show each app's real name and icon instead of a number.</td></tr>
 <tr><td>Notifications</td><td>To warn you if an app connects to a dangerous website while WhoSees is running.</td></tr>
-<tr><td>Internet</td><td>To pass your apps' traffic on to where it was going.</td></tr>
+<tr><td>Internet</td><td>To pass your apps' traffic on to where it was going, and, only if you turned it on, to check for updates.</td></tr>
 <tr><td>Network state</td><td>To know whether you're on Wi-Fi or mobile data, so apps behave the same as without WhoSees.</td></tr></table>
 <h3>Windows and Linux</h3>
 <p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
@@ -76,7 +79,15 @@
 <footer><div class="wrap">
   <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
   <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
-  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+<script>
+// phone menu: the links fold into a ☰ button on narrow screens
+(() => { const bar = document.querySelector('.bar'), b = bar.querySelector('.menu-btn');
+  const set = (o) => { bar.classList.toggle('open', o); b.setAttribute('aria-expanded', o); };
+  b.addEventListener('click', () => set(!bar.classList.contains('open')));
+  bar.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', () => set(false)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); }); })();
+</script>
 </body>
 </html>
