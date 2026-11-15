@@ -2,7 +2,7 @@
 
 Steps run in the page; each can console.log('CHECK <name> PASS|FAIL <detail>').
 Uses the dev-only WT_SHOT hook in main.js (screenshots are saved next to the results)."""
-import json, os, subprocess, time, urllib.parse
+import json, os, subprocess, tempfile, time, urllib.parse
 
 ROOT = os.environ.get('WT_ROOT') or os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 APP = os.path.join(ROOT, 'desktop/app')
@@ -21,8 +21,14 @@ var visibleDot = () => dots().find((x) => x.g.b.x > 20 && x.g.b.x < innerWidth -
 def ensure_display(name, w, h):
     sock = os.path.join(RUNTIME, name)
     if not os.path.exists(sock):
-        subprocess.Popen(['kwin_wayland', '--virtual', '--no-lockscreen', '--socket', name, '--width', str(w), '--height', str(h)],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        # Private D-Bus session + empty config/data dirs: a test KWin on the real session bus
+        # registers the desktop's global shortcuts and switches them all off when it exits.
+        home = tempfile.mkdtemp(prefix=f'{name}-kwin-')
+        kenv = dict(os.environ, XDG_CONFIG_HOME=os.path.join(home, 'config'), XDG_DATA_HOME=os.path.join(home, 'data'))
+        kenv.pop('DBUS_SESSION_BUS_ADDRESS', None)
+        subprocess.Popen(['dbus-run-session', '--', 'kwin_wayland', '--virtual', '--no-lockscreen', '--socket', name,
+                          '--width', str(w), '--height', str(h)],
+                         env=kenv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         for _ in range(60):
             if os.path.exists(sock): break
             time.sleep(0.25)

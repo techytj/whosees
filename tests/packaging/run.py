@@ -70,6 +70,16 @@ s = subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'powershell -NoProfile -Co
 check('Windows app starts and its agent works (home city found)', '"home"' in s.stdout, s.stdout + s.stderr)
 check('Windows app sends nothing on first launch (no network requests at all)', 'NETLOG' in s.stdout and 'NETURL' not in s.stdout,
       [l for l in s.stdout.splitlines() if l.startswith('NETURL') or l == 'NETLOG'] or s.stderr[-300:])
+# Report (PDF) made by the real app on Windows (dev run of the code just copied to the VM)
+subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'set PATH=C:\\Program Files\\nodejs;%PATH% && cd /d C:\\wiretrace\\desktop\\app && if not exist node_modules\\electron\\dist\\electron.exe node node_modules\\electron\\install.js'], capture_output=True, timeout=600)
+subprocess.run(['scp', '-q', '-o', 'BatchMode=yes', os.path.join(ROOT, 'tests/windows/report.ps1'), f'{VM}:C:/wiretrace/report.ps1'], timeout=60)
+rr = subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\\wiretrace\\report.ps1'], capture_output=True, text=True, timeout=200)
+check('Windows: report saved as PDF', 'CHECK win-report PASS' in rr.stdout, rr.stdout[-400:] + rr.stderr[-300:])
+wpdf = os.path.join(tempfile.mkdtemp(prefix='wt-winrep-'), 'r.pdf')
+subprocess.run(['scp', '-q', '-o', 'BatchMode=yes', f'{VM}:C:/wiretrace/win-report.pdf', wpdf], timeout=60)
+wtxt = subprocess.run(['pdftotext', wpdf, '-'], capture_output=True, text=True).stdout if os.path.exists(wpdf) else ''
+check('Windows: report PDF is about a Windows computer, A4, several pages', 'Windows computer' in wtxt and 'A4' in subprocess.run(['pdfinfo', wpdf], capture_output=True, text=True).stdout
+      and wtxt.count('\f') >= 3, wtxt[:200])
 t = subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'dir /b C:\\wiretrace\\desktop\\app\\dist\\win-unpacked\\resources\\shared\\threats'], capture_output=True, text=True, timeout=60)
 check('Windows package includes threat lists', 'domains.txt' in t.stdout and 'ips.txt' in t.stdout, t.stdout + t.stderr)
 

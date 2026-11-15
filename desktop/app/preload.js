@@ -15,5 +15,8 @@ contextBridge.exposeInMainWorld('wt', {
   setTheme: (mode) => ipcRenderer.invoke('win:theme', mode),
   info: () => ipcRenderer.invoke('app:info'),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
+  saveReport: (o) => ipcRenderer.invoke('report:save', o),
+  openReport: (p) => ipcRenderer.invoke('report:open', p),
+  showReport: (p) => ipcRenderer.invoke('report:show', p),
   platform: process.platform,
 });

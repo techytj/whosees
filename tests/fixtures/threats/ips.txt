@@ -1,2 +1,3 @@
 # test list
 185.235.84.1	QakBot botnet control server	test
+45.155.205.233	QakBot botnet control server	test

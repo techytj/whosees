@@ -51,7 +51,8 @@ window.__guideEvents = [
 ];
 window.__guideAlert = { t: 'alert', demo: true, conn: 13, host: 'promo-reward-claim.example', remote: '35.201.70.40',
   alert: { severity: 'high', kind: 'malicious-domain', title: 'Puzzle Quest connected to a dangerous website',
-           detail: 'promo-reward-claim.example is on a list of websites used for scams and phishing. Legitimate apps almost never connect to these.' } };
+           detail: 'promo-reward-claim.example is on a list of websites used for scams and phishing. Legitimate apps almost never connect to these.',
+           block: { kind: 'host', value: 'promo-reward-claim.example', label: 'promo-reward-claim.example' } } };
 """
 
 # Helpers: where things are on screen, as percentages of the screenshot (for the guide's numbered markers).
@@ -81,7 +82,8 @@ def run_desktop():
       var sent = 0, k = 0;
       setInterval(() => { k++; var r = 2000 + Math.round(18000 * Math.abs(Math.sin(k / 2.3)) + 6000 * Math.random()); sent += r;
         W.session.ingest([{ t: 'stats', demo: true, sent: 1040000 + sent, recv: 3280000 + sent * 6, rate_sent: r, open: 9 }]); }, 1000);
-      W.session.ingest(window.__guideEvents.slice(0, 7));""")
+      W.session.ingest(window.__guideEvents.slice(0, 7));
+      W.session.started = Date.now() - 31000; // the example stands in for the engine's hello""")
     step('inject2', 10200, "W.session.ingest(window.__guideEvents.slice(7));")
     step('map', 14500, "GUIDE('map', {1: at('#stats', 'l'), 2: home(), 3: dot('Dublin'), 4: at('#legend', 'l'), 5: at('.tabs'), 6: at('#stopBtn')});")
     step('apps', 15500, "$('[data-tab=apps]').click(); setTimeout(() => {}, 0); GUIDE('apps', {1: at(appRow('Daily Weather'), 'l'), 2: at('#list .row .chip'), 3: at('#search')});")
@@ -97,17 +99,29 @@ def run_desktop():
     step('legend', 25200, "var q = $('#search input') || $('#search'); q.value = ''; q.dispatchEvent(new Event('input', {bubbles: true})); var ch = $('#legend .chip[data-cat=ads]'); ch && ch.click(); GUIDE('legend', {1: at(ch)});")
     step('expert', 26800, "var ch = $('#legend .chip[data-cat=ads]'); ch && ch.click(); $('[data-mode=expert]').click(); $('[data-tab=feed]').click(); GUIDE('expert', {1: at('[data-mode=expert]'), 2: at('#list .row', 'l')});")
     step('alert', 28600, "$('[data-mode=simple]').click(); $('[data-tab=apps]').click(); W.session.ingest([window.__guideAlert]);")
-    step('alertcard', 30000, "GUIDE('alertcard', {1: at('#alertStack .alert-card', 'l'), 2: at('#alertStack [data-alert-trust]'), 3: at('#alertBadge')});")
-    step('alerts', 31400, "var t = $('#alertStack [data-alert-trust]'); t && t.click(); $('[data-tab=alerts]').click(); GUIDE('alerts', {1: at('[data-tab=alerts]'), 2: at('#list .row, #list .alert-card', 'l')});")
-    step('settings', 32800, "$('#settingsBtn').click(); GUIDE('settings', {1: at('#settingsBtn')});")
-    step('support', 34200, "document.querySelector('#dlg [data-support]').click(); GUIDE('support', {1: at('#dlg .tips')});")
-    step('stop', 35600, "$('#dlg').close(); GUIDE('stop', {1: at('#stopBtn')});")
+    step('alertcard', 30000, "GUIDE('alertcard', {1: at('#alertStack .alert-card', 'l'), 2: at('#alertStack [data-alert-block]'), 3: at('#alertBadge')});")
+    step('alerts', 31400, "W.session.mode = 'deep'; W.session.blocking = true; window.wt.setSettings({ deep: true }).then(() => W.reloadSettings()); var t = $('#alertStack [data-alert-block]'); setTimeout(() => t && t.click(), 150); $('[data-tab=alerts]').click(); GUIDE('alerts', {1: at('[data-tab=alerts]'), 2: at('#list .row, #list .alert-card', 'l')});")
+    # blocking, as it looks in a Deep mode live view (the example data stands in for the engine)
+    step('block', 32800, """(async () => { await window.wt.setSettings({ deep: true }); await W.reloadSettings(); W.session.mode = 'deep'; W.session.blocking = true;
+      $('[data-tab=places]').click(); await new Promise((r) => setTimeout(r, 200));
+      var r = [...document.querySelectorAll('#list .row[data-place]')].find((x) => /Criteo/.test(x.innerText)); r && r.click();
+      await new Promise((r) => setTimeout(r, 300)); var b = $('#detail [data-block-kind=company]'); b && b.scrollIntoView({ block: 'center' });
+      await new Promise((r) => setTimeout(r, 200));
+      GUIDE('block', {1: at('#detail [data-block-kind=company]', 'l'), 2: at('#detail [data-block-kind=category]', 'l'), 3: at('#detail [data-block-kind=country]', 'l')}); })()""")
+    step('blocked', 34200, """(async () => { $('#detail [data-block-kind=company]').click(); await new Promise((r) => setTimeout(r, 400));
+      $('#detail [data-back]') && $('#detail [data-back]').click(); $('[data-tab=blocked]').click(); await new Promise((r) => setTimeout(r, 300));
+      GUIDE('blocked', {1: at('#blockTracking'), 2: at('#list [data-keep]'), 3: at('#list [data-unblock]')}); })()""")
+    step('report', 35600, "$('#toast').hidden = true; $('#reportBtn').click(); GUIDE('report', {1: at('#reportBtn'), 2: at('#repTheme'), 3: at('#repPaper'), 4: at('#repGo')});")
+    step('reportpdf', 37000, "$('#dlg').close(); W.saveReport({ theme: 'dark', paper: 'letter' }).then((r) => console.log('GUIDE-REPORT ' + JSON.stringify(r)));")
+    step('settings', 41000, "$('#settingsBtn').click(); GUIDE('settings', {1: at('#settingsBtn')});")
+    step('support', 42400, "document.querySelector('#dlg [data-support]').click(); GUIDE('support', {1: at('#dlg .tips')});")
+    step('stop', 43800, "$('#dlg').close(); GUIDE('stop', {1: at('#stopBtn')});")
 
     ud = os.path.join(TMP, 'ud-desk'); os.makedirs(ud, exist_ok=True)
     json.dump({'theme': 'dark', 'home': HOME, 'homeGuessed': False, 'mode': 'simple', 'updatePromptSeen': True}, open(os.path.join(ud, 'settings.json'), 'w'))
     driver.ensure_display('wt-guide', 1440, 900)
     spec = ','.join(f"{n}:{at}:{urllib.parse.quote(js)}" for n, at, js in S)
-    env = dict(os.environ, WAYLAND_DISPLAY='wt-guide', WT_SHOT=os.path.join(TMP, 'd'), WT_SHOT_STEPS=spec)
+    env = dict(os.environ, WAYLAND_DISPLAY='wt-guide', WT_SHOT=os.path.join(TMP, 'd'), WT_SHOT_STEPS=spec, WT_REPORT_OUT=os.path.join(TMP, 'report.pdf'))
     p = subprocess.run([driver.ELECTRON, driver.APP, '--ozone-platform=wayland', '--no-sandbox', f'--user-data-dir={ud}'], env=env, capture_output=True, text=True, timeout=120)
     marks = {}
     for line in (p.stdout + p.stderr).splitlines():
@@ -175,7 +189,7 @@ def run_android():
       W.session.ingest = (evs) => orig(evs.filter((e) => e.demo));
       var sent = 0, k = 0; window.__demoStats = setInterval(() => { k++; var r = 1500 + Math.round(9000 * Math.abs(Math.sin(k / 2.3)) + 3000 * Math.random()); sent += r;
         W.session.ingest([{ t: 'stats', demo: true, sent: 820000 + sent, recv: 2600000 + sent * 6, rate_sent: r, open: 8 }]); }, 1000);
-      W.session.ingest(window.__guideEvents); return true; })()""")
+      W.session.ingest(window.__guideEvents); W.session.started = Date.now() - 40000; W.session.mode = 'vpn'; W.session.blocking = true; return true; })()""")
     time.sleep(6)
     cap('live'); out['live'] = marks("{1: at('#stats', 'l'), 2: home(), 3: at('.tabs'), 4: at('#stopBtn')}")
     js("(() => { document.querySelector('[data-tab=apps]').click(); const r = [...document.querySelectorAll('#list .row')].find((x) => x.textContent.includes('Daily Weather')); r.click(); document.getElementById('panel').classList.add('max'); return true; })()")
@@ -186,7 +200,21 @@ def run_android():
     js("(() => { document.getElementById('panel').classList.remove('max'); return true; })()"); time.sleep(0.8)
     js("(() => { window.__wt.session.ingest([window.__guideAlert]); return document.querySelectorAll('#alertStack .alert-card').length; })()")
     time.sleep(1.5)
-    cap('alert'); out['alert'] = marks("{1: at('#alertStack .alert-card', 'l'), 2: at('#alertStack [data-alert-trust]')}")
+    cap('alert'); out['alert'] = marks("{1: at('#alertStack .alert-card', 'l'), 2: at('#alertStack [data-alert-block]')}")
+    # the Blocked tab, after "Block now"
+    js("(() => { document.querySelector('#alertStack [data-alert-block]')?.click(); return true; })()"); time.sleep(1.5)
+    js("(() => { document.querySelector('#alertStack [data-alert-dismiss]')?.click(); document.getElementById('toast').hidden = true; document.querySelector('[data-tab=blocked]').click(); document.getElementById('panel').classList.add('max'); return true; })()")
+    time.sleep(1.5)
+    cap('blocked'); out['blocked'] = marks("{1: at('#blockTracking'), 2: at('#list [data-keep]')}")
+    js("(() => { document.getElementById('panel').classList.remove('max'); return true; })()"); time.sleep(0.8)
+    # report: Android's own print screen, where "Save as PDF" makes the file
+    js("window.__wt.saveReport({ theme: 'dark', paper: 'letter' }).then(() => true)"); time.sleep(6)
+    cap('reportprint')
+    adb('shell', 'uiautomator', 'dump', '/sdcard/ui.xml'); ui = adb('shell', 'cat', '/sdcard/ui.xml')
+    m = re.search(r'text="(Select a printer|Save as PDF)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', ui)
+    if m:
+        x1, y1, x2, y2 = map(int, m.groups()[1:]); out['reportprint'] = {'1': [round(100 * (x1 + x2) / 2 / 1080, 2), round(100 * (y1 + y2) / 2 / 2400, 2)]}
+    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK'); time.sleep(2)
     # Private DNS notice
     js("(() => { clearInterval(window.__demoStats); document.getElementById('stopBtn').click(); return true; })()"); time.sleep(3)
     adb('shell', 'settings', 'put', 'global', 'private_dns_mode', 'hostname'); adb('shell', 'settings', 'put', 'global', 'private_dns_specifier', 'dns.google')
@@ -211,7 +239,15 @@ if __name__ == '__main__' and 'android' in sys.argv:
     print('android shots:', sorted(m))
 elif __name__ == '__main__':
     marks = run_desktop()
-    keep = ['start', 'location', 'deepask', 'map', 'apps', 'appdetail', 'appdetail2', 'hover', 'places', 'feed', 'search', 'expert', 'alertcard', 'alerts', 'settings', 'support']
+    keep = ['start', 'location', 'deepask', 'map', 'apps', 'appdetail', 'appdetail2', 'hover', 'places', 'feed', 'search', 'expert', 'alertcard', 'alerts', 'block', 'blocked', 'report', 'settings', 'support']
+    # the report itself: its first two pages side by side
+    rp = os.path.join(TMP, 'report.pdf')
+    if os.path.exists(rp):
+        subprocess.run(['pdftoppm', '-r', '110', '-f', '1', '-l', '2', '-png', rp, os.path.join(TMP, 'rp')], check=True)
+        subprocess.run(['magick', os.path.join(TMP, 'rp-1.png'), os.path.join(TMP, 'rp-2.png'), '-bordercolor', '#2a2c30', '-border', '1', '+append',
+                        '-resize', '1400x', '-quality', '84', os.path.join(OUT, 'd-reportpdf.webp')], check=True)
+    else:
+        print('missing report.pdf')
     for k in keep:
         src = os.path.join(TMP, f'd-{k}.png')
         if os.path.exists(src):

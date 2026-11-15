@@ -2,7 +2,7 @@
 // Owns the window, the capture agent process, and read-only access to bundled data.
 'use strict';
 
-const { app, BrowserWindow, ipcMain, protocol, net, nativeTheme, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, nativeTheme, shell, session, dialog } = require('electron');
 const { spawn, execFile } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -122,7 +122,7 @@ function startAgent(opts = {}) {
   if (agent) return { ok: true, already: true };
   if (!fs.existsSync(AGENT)) return { ok: false, error: `Capture agent not found at ${AGENT}` };
   // --self-exe: WhoSees's own traffic (an update check, if turned on) is shown as WhoSees and never flagged as a threat
-  const args = ['--geo', GEO, '--categories', CATS, '--threats', THREATS, '--interval', String(opts.interval || 250), '--self-exe', process.execPath];
+  const args = ['--geo', GEO, '--categories', CATS, '--threats', THREATS, '--interval', String(opts.interval || 250), '--self-exe', process.execPath, '--blocking'];
   if (opts.lan) args.push('--lan');
   const deep = !!opts.deep && (process.platform === 'linux' || process.platform === 'win32');
   const direct = DEV && process.env.WT_DEEP_DIRECT === '1'; // dev/test: already privileged
@@ -353,6 +353,44 @@ function devScreenshots(w, prefix) {
     app.quit();
   });
 }
+
+// ---------- report (PDF), made on this computer ----------
+// The page is printed in a hidden window with scripts off, in its own in-memory session that refuses
+// every request: everything the report shows (fonts, map picture) is inside the document itself.
+let lastReport = null;
+ipcMain.handle('report:save', async (_e, { html, name } = {}) => {
+  if (typeof html !== 'string' || html.length > 80e6) return { ok: false, error: 'The report is too large.' };
+  let file = DEV && process.env.WT_REPORT_OUT; // automated tests: no dialog
+  if (!file) {
+    const safe = String(name || 'WhoSees report.pdf').replace(/[\\/:*?"<>|]/g, '-');
+    const r = await dialog.showSaveDialog(win, { title: 'Save report', defaultPath: path.join(app.getPath('documents'), safe), filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+    if (r.canceled || !r.filePath) return { ok: false, cancelled: true };
+    file = /\.pdf$/i.test(r.filePath) ? r.filePath : `${r.filePath}.pdf`;
+  }
+  const tmp = path.join(app.getPath('temp'), `whosees-report-${process.pid}-${Date.now()}.html`);
+  let w = null;
+  try {
+    fs.writeFileSync(tmp, html, { mode: 0o600 });
+    if (DEV && process.env.WT_REPORT_OUT) fs.writeFileSync(`${file}.html`, html); // tests: keep the page too
+    const ses = session.fromPartition('whosees-report');
+    noNetworkAtStartup(ses);
+    ses.webRequest.onBeforeRequest((d, cb) => cb({ cancel: !/^(file|data):/.test(d.url) }));
+    w = new BrowserWindow({ show: false, webPreferences: { session: ses, javascript: false, sandbox: true, contextIsolation: true, spellcheck: false } });
+    await w.loadFile(tmp);
+    const pdf = await w.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true, generateDocumentOutline: true, generateTaggedPDF: true });
+    fs.writeFileSync(file, pdf);
+    lastReport = file;
+    return { ok: true, path: file, bytes: pdf.length };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  } finally {
+    try { w?.destroy(); } catch {}
+    try { fs.unlinkSync(tmp); } catch {}
+  }
+});
+// Only the report just saved can be opened or shown from the page.
+ipcMain.handle('report:open', (_e, p) => (p && p === lastReport ? shell.openPath(p) : 'not allowed'));
+ipcMain.handle('report:show', (_e, p) => { if (p && p === lastReport) shell.showItemInFolder(p); });
 
 // WhoSees sends nothing on its own. Chromium's spellchecker would otherwise download a dictionary
 // from Google (redirector.gvt1.com) the first time the app opens, even with spellcheck off in the window.

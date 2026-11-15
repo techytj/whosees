@@ -391,10 +391,24 @@ body.android .panel { padding-bottom: env(safe-area-inset-bottom); }
   .panel.min ~ .stop { bottom: calc(134px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 520px) {
-  .seg button { padding: 0 9px; }
+  #reportBtn { display: none; } /* phones and narrow windows: the report is in Settings and on the "stopped" card */
+  body:not(.android) .status { padding: 0 9px; } body:not(.android) .status #statusText { display: none; } /* just the live dot: the window buttons need the room (phones have none) */
+  .titlebar { gap: 6px; }
+  .actions { gap: 2px; }
+  .icon-btn { width: 30px; }
+  .seg button { padding: 0 7px; }
   .status { padding: 0 10px; }
   .stat label { font-size: 10.5px; }
 }
 /* touch screens: no hover cards (tap a dot to open its details instead) */
 @media (hover: none) { .tip { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* report (PDF) */
+.hero .report-cta { display: flex; align-items: center; gap: 8px; margin: 12px auto 0; }
+.hero .report-cta svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.dlg .seg button { min-width: 64px; }
+
+/* blocking */
+.row.track-all { border: 1px solid var(--line); margin: 0 6px 8px; cursor: default; }
+.ghost.sm.keep.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }

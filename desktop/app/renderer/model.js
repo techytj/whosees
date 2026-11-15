@@ -50,6 +50,8 @@ export class Session {
     this.mode = 'standard';
     this.totals = { sent: 0, recv: 0, rateSent: 0, open: 0 };
     this.history = [];        // send rate per second (sparkline)
+    this.rateLog = [];        // [time, send rate] for the whole live view (the report's chart)
+    this.ended = null;        // when the live view was stopped
     this.blockedHits = {};    // ip -> packets stopped by the firewall
     this.alerts = [];         // newest first
     this.threatLists = null;
@@ -77,6 +79,7 @@ export class Session {
         case 'stats':
           this.totals = { sent: e.sent, recv: e.recv, rateSent: e.rate_sent, open: e.open };
           this.history.push(e.rate_sent); if (this.history.length > 90) this.history.shift();
+          this.logRate(e.rate_sent);
           break;
         case 'host': this.host(e); break;
         case 'alert': this.alert(e); break;
@@ -84,6 +87,7 @@ export class Session {
         case 'rules': this.emit('rules', e); break;
         case 'blockstats':
           this.blockedHits = e.ips || {};
+          for (const [ip, w] of Object.entries(e.where || {})) this.stopped(ip, w);
           break;
         case 'warn': this.emit('warn', e.msg); break;
         case 'deepfail': this.emit('deepfail', e); break;
@@ -109,12 +113,7 @@ export class Session {
     if (e.owner) a.owners.set(e.owner, (a.owners.get(e.owner) || 0) + 1);
     a.cats.set(e.category, (a.cats.get(e.category) || 0) + 1);
 
-    let p = this.places.get(c.key);
-    if (!p) {
-      p = { key: c.key, lat: e.geo?.lat, lon: e.geo?.lon, geo: e.geo, scope: e.scope, sent: 0, recv: 0,
-            conns: new Set(), apps: new Set(), owners: new Map(), cats: new Map(), sites: new Map(), hosts: new Set(), live: 0, last: now, first: now };
-      this.places.set(c.key, p);
-    }
+    const p = this.place(c.key, e, now);
     p.conns.add(e.id); p.apps.add(a.id); p.live++; p.last = now;
     if (e.owner) p.owners.set(e.owner, (p.owners.get(e.owner) || 0) + 1);
     p.cats.set(e.category, (p.cats.get(e.category) || 0) + 1);
@@ -126,10 +125,42 @@ export class Session {
     this.emit('open', { conn: c, place: p, app: a, fresh: !e.existing });
   }
 
+  place(key, e, now) {
+    let p = this.places.get(key);
+    if (!p) {
+      p = { key, lat: e.geo?.lat, lon: e.geo?.lon, geo: e.geo, scope: e.scope, sent: 0, recv: 0,
+            conns: new Set(), apps: new Set(), owners: new Map(), cats: new Map(), sites: new Map(), hosts: new Set(),
+            stops: new Map(), live: 0, last: now, first: now };
+      this.places.set(key, p);
+    }
+    return p;
+  }
+
+  // The firewall stopped an address before any connection to it showed up (blocked from its first lookup).
+  // Put it on the map so the attempts are visible: only where it is and who runs it, no app and no data.
+  stopped(ip, w) {
+    if (w.scope !== 'internet' || w.geo?.lat == null) return;
+    for (const c of this.conns.values()) if (c.remote === ip) return;
+    const p = this.place(this.placeKey(w), w, Date.now());
+    if (p.stops.has(ip)) return;
+    p.stops.set(ip, { host: w.host || null, category: w.category });
+    if (w.owner) p.owners.set(w.owner, (p.owners.get(w.owner) || 0) + 1);
+    p.cats.set(w.category, (p.cats.get(w.category) || 0) + 1);
+    this.noteSite(null, p, w);
+    this.emit('stopped', { place: p, ip });
+  }
+
   add(c, ds, dr, pulse = true) {
+    c.ss = (c.ss || 0) + (ds || 0); c.sr = (c.sr || 0) + (dr || 0); // this live view only
     const a = this.apps.get(c.app.id), p = this.places.get(c.key);
     for (const x of [a, p]) if (x) { x.sent += ds; x.recv += dr; x.last = Date.now(); }
     if (pulse && (ds > 0 || dr > 0)) this.emit('flow', { conn: c, place: p, sent: ds, recv: dr });
+  }
+
+  /** One sample a second; when the live view gets long, neighbouring samples are merged so it stays small. */
+  logRate(v) {
+    this.rateLog.push([Date.now(), v || 0]);
+    if (this.rateLog.length > 1800) this.rateLog = this.rateLog.filter((_, i) => i % 2 === 0).map((x, i) => [x[0], (x[1] + (this.rateLog[2 * i + 1]?.[1] ?? x[1])) / 2]);
   }
 
   noteSite(a, p, c) {
@@ -193,10 +224,12 @@ export class Session {
     }
     return best;
   }
-  /** Packets stopped for a place (sum over its addresses). */
+  /** Packets stopped for a place (sum over its addresses, each counted once). */
   stoppedAt(p) {
+    const ips = new Set(p.stops?.keys());
+    for (const id of p.conns) { const c = this.conns.get(id); if (c) ips.add(c.remote); }
     let n = 0;
-    for (const id of p.conns) { const c = this.conns.get(id); if (c) n += this.blockedHits[c.remote] || 0; }
+    for (const ip of ips) n += this.blockedHits[ip] || 0;
     return n;
   }
 

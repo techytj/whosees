@@ -54,15 +54,18 @@ impl Flow {
 
 #[derive(Default)]
 struct Rules {
-    ips: HashSet<IpAddr>, hosts: Vec<String>, companies: Vec<String>, uids: HashSet<i64>,
+    ips: HashSet<IpAddr>, hosts: Vec<String>, companies: Vec<String>, cats: Vec<String>, uids: HashSet<i64>,
     ranges: Vec<(IpAddr, IpAddr)>, any: bool,
 }
 impl Rules {
-    fn blocks(&self, remote: IpAddr, host: Option<&str>, owner: Option<&str>, uid: i64) -> bool {
+    /// `category`: from the connection's own website name only (never guessed from the address owner), and only
+    /// once that name is known, so a tracker rule can't catch an ordinary site on a shared address.
+    fn blocks(&self, remote: IpAddr, host: Option<&str>, owner: Option<&str>, category: Option<&str>, uid: i64) -> bool {
         self.any && (self.uids.contains(&uid) || self.ips.contains(&remote)
             || self.ranges.iter().any(|(a, b)| *a <= remote && remote <= *b)
             || host.is_some_and(|h| self.hosts.iter().any(|r| h == r || h.ends_with(&format!(".{r}"))))
-            || owner.is_some_and(|o| self.companies.iter().any(|c| c.eq_ignore_ascii_case(o))))
+            || owner.is_some_and(|o| self.companies.iter().any(|c| c.eq_ignore_ascii_case(o)))
+            || category.is_some_and(|cat| self.cats.iter().any(|c| classify::category_matches(c, cat))))
     }
 }
 
@@ -114,8 +117,9 @@ impl Shared {
         let app = (self.owner)(proto, local, remote);
         let host = self.dns.lock().ok().and_then(|d| d.get(&remote.ip()).cloned());
         let owner = self.describe(remote.ip(), host.as_deref()).2;
+        // before the app says which website it wants, a shared address can't be judged by kind: no category here
         let blocked = classify::scope(remote.ip()) == Scope::Internet
-            && self.rules.lock().map(|r| r.blocks(remote.ip(), host.as_deref(), owner.as_deref(), app.uid)).unwrap_or(false);
+            && self.rules.lock().map(|r| r.blocks(remote.ip(), host.as_deref(), owner.as_deref(), None, app.uid)).unwrap_or(false);
         (app, host, blocked)
     }
 
@@ -124,7 +128,8 @@ impl Shared {
         let host = host.or_else(|| self.dns.lock().ok()?.get(&remote.ip()).cloned());
         let (g, category, owner, site, known, place) = self.describe(remote.ip(), host.as_deref());
         let sc = classify::scope(remote.ip());
-        let blocked = sc == Scope::Internet && self.rules.lock().map(|r| r.blocks(remote.ip(), host.as_deref(), owner.as_deref(), app.uid)).unwrap_or(false);
+        let hcat = host.as_deref().and_then(|h| self.hostdb.lookup(h)).map(|i| i.category.clone());
+        let blocked = sc == Scope::Internet && self.rules.lock().map(|r| r.blocks(remote.ip(), host.as_deref(), owner.as_deref(), hcat.as_deref(), app.uid)).unwrap_or(false);
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let (svc, what, enc) = classify::service(proto, remote.port());
         let report = sc == Scope::Internet || (sc == Scope::Lan && self.cfg.lan);
@@ -176,16 +181,18 @@ impl Shared {
                 "ip" => if let Ok(ip) = v.parse() { r.ips.insert(ip); },
                 "host" => r.hosts.push(v.to_lowercase()),
                 "company" => r.companies.push(v),
+                "category" => r.cats.push(v),
                 "uid" => if let Ok(u) = v.parse() { r.uids.insert(u); },
                 "country" => if let Some(g) = &self.geo { r.ranges.extend(g.country_ranges(&v)); },
                 _ => {}
             }
         }
-        r.any = !(r.ips.is_empty() && r.hosts.is_empty() && r.companies.is_empty() && r.uids.is_empty() && r.ranges.is_empty());
+        r.any = !(r.ips.is_empty() && r.hosts.is_empty() && r.companies.is_empty() && r.cats.is_empty() && r.uids.is_empty() && r.ranges.is_empty());
         // cut open connections that are now blocked
         for f in self.flows.lock().unwrap().values() {
             let owner = self.describe(f.remote, f.host.as_deref()).2;
-            if r.blocks(f.remote, f.host.as_deref(), owner.as_deref(), f.app.uid) { f.kill.store(true, Ordering::SeqCst); }
+            let hcat = f.host.as_deref().and_then(|h| self.hostdb.lookup(h)).map(|i| i.category.as_str());
+            if r.blocks(f.remote, f.host.as_deref(), owner.as_deref(), hcat, f.app.uid) { f.kill.store(true, Ordering::SeqCst); }
         }
         let n = rules.as_array().map(|a| a.len()).unwrap_or(0);
         *self.rules.lock().unwrap() = r;

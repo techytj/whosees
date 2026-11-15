@@ -17,6 +17,8 @@ import android.provider.Settings
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -42,6 +44,7 @@ class MainActivity : Activity() {
     private var pendingStart: JSONObject? = null
     private val prefs by lazy { getSharedPreferences("wiretrace", MODE_PRIVATE) }
     private val iconCache = HashMap<String, String?>()
+    private var printWeb: WebView? = null // kept alive while Android's print screen reads it
 
     private val pump = object : Runnable {
         override fun run() {
@@ -221,6 +224,27 @@ class MainActivity : Activity() {
             runCatching { startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 .onFailure { startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }
+        /** Report: Android's print screen, where "Save as PDF" makes the file. Scripts and network are off for the page. */
+        @JavascriptInterface fun printReport(html: String, name: String, paper: String) {
+            ui.post {
+                val w = WebView(this@MainActivity)
+                w.settings.javaScriptEnabled = false
+                w.settings.blockNetworkLoads = true
+                var done = false
+                w.webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String?) {
+                        if (done) return; done = true
+                        val job = name.removeSuffix(".pdf")
+                        val attrs = PrintAttributes.Builder()
+                            .setMediaSize(if (paper == "a4") PrintAttributes.MediaSize.ISO_A4 else PrintAttributes.MediaSize.NA_LETTER)
+                            .setMinMargins(PrintAttributes.Margins.NO_MARGINS).build()
+                        getSystemService(PrintManager::class.java).print(job, view.createPrintDocumentAdapter(job), attrs)
+                    }
+                }
+                printWeb = w
+                w.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+            }
+        }
         @JavascriptInterface fun isDark(): Boolean = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         @JavascriptInterface fun notify(title: String, body: String) {
             val nm = getSystemService(NotificationManager::class.java)
@@ -260,6 +284,7 @@ class MainActivity : Activity() {
     checkUpdate: () => new Promise((res) => { window.__wtUpdateResolve = (r) => { window.__wtUpdateResolve = null; res(r); }; A.checkUpdate(); }),
     privateDns: async () => JSON.parse(A.privateDns()),
     openNetworkSettings: () => A.openNetworkSettings(),
+    saveReport: async (o) => { A.printReport(o.html, o.name, o.paper || 'letter'); return { ok: true, system: true }; },
   };
   window.Notification = class { constructor(t, o) { A.notify(String(t), String((o && o.body) || '')); } static get permission() { return 'granted'; } };
 })();

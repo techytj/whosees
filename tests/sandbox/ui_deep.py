@@ -15,6 +15,9 @@ def traffic(stop):
     time.sleep(7)  # app boots, Start is pressed at 3s
     socks = []
     for rnd in range(2):  # twice: a lookup made while Deep mode is still starting can be missed the first time
+        # a botnet control server that no rule blocks (185.235.84.1 is on the list too, but shares Criteo's blocked address)
+        try: socks.append(socket.create_connection(('45.155.205.233', 443), timeout=2))
+        except Exception: pass
         for n in NAMES:
             ip = subprocess.run(['dig', '+short', '@10.99.0.2', n], capture_output=True, text=True).stdout.strip()
             try: socks.append(ctx.wrap_socket(socket.create_connection((ip, 443), timeout=2), server_hostname=n))
@@ -42,13 +45,12 @@ results = driver.run(out, 'deep', [
       var card = cards.find((c) => c.innerText.includes('dangerous website'));
       CHECK('dangerous-website-alert-in-plain-words', !!card, $('#alertStack').innerText.slice(0, 300));
       CHECK('alert-badge-visible', !$('#alertBadge').hidden, '');
-      CHECK('v1-alert-has-no-block-button', !!card && !card.querySelector('[data-alert-block]'), '');
-      var got = card && card.querySelector('[data-alert-trust]');
-      CHECK('alert-offers-got-it', !!got && got.textContent.includes('Got it'), card && card.innerHTML.slice(0, 200));
-      if (got) got.click();
+      var btn = card && card.querySelector('[data-alert-block]');
+      CHECK('alert-offers-block-now', !!btn, card && card.innerHTML.slice(0, 200));
+      if (btn) btn.click();
     """),
     ('afterblock', 16500, """
-      CHECK('got-it-marks-alert-noted', W.session.alerts.some((a) => a.status === 'trusted'), W.session.alerts.map((a) => a.kind + ':' + a.status));
+      CHECK('block-now-blocks-the-site', (W.session.alerts.find((a) => a.kind === 'malicious-website') || {}).status === 'blocked', W.session.alerts.map((a) => a.kind + ':' + a.status));
       var p = [...W.session.places.values()].find((x) => x.alerts > 0);
       CHECK('place-flagged-on-map', !!p, '');
       document.querySelector('[data-tab=alerts]').click();
@@ -57,12 +59,23 @@ results = driver.run(out, 'deep', [
     """),
     ('check', 17500, """
       CHECK('mode-deep', W.session.mode === 'deep', W.session.mode);
-      CHECK('blocking-off-in-v1', W.session.blocking === false, W.session.blocking);
+      CHECK('blocking-available', W.session.blocking === true, W.session.blocking);
       CHECK('status-says-deep', $('#statusText').textContent.includes('Deep'), $('#statusText').textContent);
       var sites = new Set(); W.session.places.forEach((p) => p.sites.forEach((_, k) => sites.add(k)));
       CHECK('website-names-shown', sites.has('Hotjar') && sites.has('Claude'), [...sites]);
       CHECK('tracking-count', +$('#sTrack').textContent >= 3, $('#sTrack').textContent);
-      CHECK('no-blocked-tab', !document.querySelector('[data-tab=blocked]'), '');
+      var crit = [...W.session.places.values()].find((p) => [...p.owners.keys()].some((o) => /criteo/i.test(o)));
+      // blocked from its very first lookup, so no connection ever opened: the place still shows, with the attempts stopped
+      CHECK('criteo-place-exists', !!crit, [...W.session.places.values()].map((p) => [...p.owners.keys()].join('/')));
+      CHECK('criteo-shown-blocked', !!crit && W.flows.isBlocked(crit), '');
+      CHECK('criteo-attempts-stopped-by-firewall', !!crit && W.session.stoppedAt(crit) > 0, W.session.blockedHits);
+      CHECK('criteo-never-connected', !!crit && [...crit.conns].every((id) => !(W.session.conns.get(id) || {}).sent), crit && [...crit.conns].map((id) => W.session.conns.get(id)));
+      var anth = [...W.session.places.values()].find((p) => p.sites.has('Claude'));
+      if (anth) CHECK('unblocked-place-not-marked', !W.flows.isBlocked(anth), '');
+      document.querySelector('[data-tab=blocked]').click();
+      CHECK('blocked-tab-lists-rules', document.querySelectorAll('#list [data-rule]').length === 3 && $('#list').innerText.includes('evil-c2.example'), $('#list').innerText.slice(0, 200));
+      CHECK('blocking-on-note', $('#list').innerText.includes('Blocking is on'), $('#list').innerText.slice(0, 120));
+      CHECK('alert-block-marked-kept', [...document.querySelectorAll('#list [data-rule]')].some((r) => r.innerText.includes('evil-c2.example') && r.innerText.includes('kept')), $('#list').innerText.slice(0, 300));
       var g = [...W.session.places.values()].find((p) => p.sites.has('Google Marketing'));
       CHECK('ad-network-place-exists', !!g, '');
       if (g) {
@@ -70,11 +83,25 @@ results = driver.run(out, 'deep', [
         document.querySelector('#list .row[data-place="' + CSS.escape(g.key) + '"]').click();
         CHECK('premium-shows-seen-location', $('#detail .dchip.seen') && $('#detail').textContent.includes('Your location'), $('#detail').textContent.slice(0, 300));
         CHECK('premium-shows-likely-advertising-id', $('#detail').textContent.includes('Advertising ID'), $('#detail').textContent.slice(0, 300));
-        CHECK('no-block-buttons', !document.querySelector('[data-block-kind]'), '');
+        CHECK('place-offers-block-all-trackers', !!document.querySelector('#detail [data-block-kind=category]'), '');
       }
     """),
+    ('stopped', 18500, """
+      // a place reached only by attempts the firewall stopped: no app, no connection, no data
+      var crit = [...W.session.places.values()].find((p) => [...p.owners.keys()].some((o) => /criteo/i.test(o)));
+      document.querySelector('[data-tab=places]').click();
+      var row = crit && document.querySelector('#list .row[data-place="' + CSS.escape(crit.key) + '"]');
+      CHECK('stopped-place-listed-as-blocked', !!row && /blocked/i.test(row.innerText) && !/undefined|NaN/.test(row.innerText), row && row.innerText);
+      if (row) row.click();
+    """),
+    ('stopped-detail', 19300, """
+      var t = $('#detail').innerText;
+      CHECK('stopped-place-detail-in-plain-words', t.includes('An app tried to reach Criteo') && t.includes('stopped it before it could connect'), t.slice(0, 300));
+      CHECK('stopped-place-detail-clean', !/undefined|NaN|-1 other|Apps talking to it/i.test(t) && /Attempts stopped/i.test(t), t.slice(0, 500));
+      CHECK('stopped-place-detail-no-empty-fields', [...document.querySelectorAll('#detail dd')].every((d) => d.innerText.trim()), [...document.querySelectorAll('#detail dt')].map((d) => d.innerText));
+    """),
 ], {'theme': 'dark', 'home': HOME, 'deep': True, 'deepExplained': True,
-    },
+    'rules': [{'kind': 'company', 'value': 'Criteo', 'label': 'Criteo', 'keep': True}, {'kind': 'host', 'value': 'scorecardresearch.com', 'label': 'scorecardresearch.com', 'keep': True}]},
     env={'WT_DEEP_DIRECT': '1', 'WT_THREATS_DIR': os.path.join(driver.ROOT, 'tests/fixtures/threats')}, args=('--no-sandbox',), timeout=120)
 stop.set()
 results.append(('deep: no-page-errors', not driver.page_errors(out, 'deep'), driver.page_errors(out, 'deep')))

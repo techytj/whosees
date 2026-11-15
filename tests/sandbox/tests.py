@@ -29,6 +29,14 @@ def tls(n, ip=None, hold=1.0):
     except Exception:
         return False
 
+def beacon(n):
+    """A tracker beacon, the way apps send them: look the name up, connect at once, one request, read the reply."""
+    try:
+        s = ctx.wrap_socket(socket.create_connection((resolve(n), 443), timeout=3), server_hostname=n)
+        s.send(b'beacon'); s.settimeout(2); ok = bool(s.recv(10)); s.close(); return ok
+    except Exception:
+        return False
+
 class Agent:
     def __init__(self, extra=()):
         self.p = subprocess.Popen([AGENT, *ARGS, *extra], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -140,16 +148,52 @@ check('blocked website refused (retry)', not tls('ads.doubleclick.net'))
 tls('bidder.criteo.com'); time.sleep(0.3)
 check('blocked company refused on retry', not tls('bidder.criteo.com'))
 check('unblocked site still works', tls('api.anthropic.com'))
-a.send({'cmd': 'rules', 'rules': []}); a.wait(lambda: sum(e['t'] == 'rules' for e in a.events) >= 2, 5); time.sleep(0.3)
+last_hits = lambda ip: next((e['ips'] for e in reversed(a.events) if e['t'] == 'blockstats'), {}).get(ip, 0)
+a.wait(lambda: last_hits('185.235.84.1') > 0, 3); crit_hits = last_hits('185.235.84.1')
+check('stopped attempts are counted', crit_hits > 0, crit_hits)
+check('a stopped address is described for the map (no connection ever showed up)', any((e.get('where') or {}).get('185.235.84.1', {}).get('owner') == 'Criteo' for e in a.events if e['t'] == 'blockstats'), [e.get('where') for e in a.events if e['t'] == 'blockstats'][:2])
+a.send({'cmd': 'rules', 'rules': [{'kind': 'category', 'value': 'tracking'}]}); a.wait(lambda: sum(e['t'] == 'rules' for e in a.events) >= 2, 5); time.sleep(0.3)
+check('"all trackers and ads": the very first request to a new tracker is refused', not beacon('static.hotjar.com'))
+check('"all trackers and ads": analytics site refused', not tls('static.hotjar.com'))
+check('"all trackers and ads": ad site refused', not tls('ads.doubleclick.net'))
+check('"all trackers and ads": ordinary site still works', tls('api.anthropic.com'))
+n_bs = sum(e['t'] == 'blockstats' for e in a.events); a.wait(lambda: sum(e['t'] == 'blockstats' for e in a.events) > n_bs, 3)
+check('stopped-attempt counts survive a change of rules', last_hits('185.235.84.1') >= crit_hits > 0, (crit_hits, last_hits('185.235.84.1')))
+yt = resolve('www.youtube.com'); time.sleep(0.6)  # YouTube shares 142.250.65.78 with ads.doubleclick.net and google-analytics here
+check('"all trackers and ads": an ordinary site sharing a tracker\'s address still works', tls('www.youtube.com', ip=yt))
+check('"all trackers and ads": the shared address is unblocked, not the whole rule', not tls('static.hotjar.com'))
+a.send({'cmd': 'rules', 'rules': []}); a.wait(lambda: sum(e['t'] == 'rules' for e in a.events) >= 3, 5); time.sleep(0.3)
 check('unblock restores access', tls('ads.doubleclick.net'))
 a.stop(); time.sleep(0.3)
 check('firewall table removed after stop', not nft_table())
+
+# ---------- Blocking through iptables (systems without the nft command, e.g. many Arch installs) ----------
+ipt_chain = lambda: subprocess.run(['iptables', '-w', '-L', 'WHOSEES', '-n'], capture_output=True).returncode == 0
+os.environ['WT_FIREWALL'] = 'iptables'
+a = Agent(extra=('--blocking',))
+a.send({'cmd': 'rules', 'rules': [{'kind': 'host', 'value': 'doubleclick.net'}, {'kind': 'category', 'value': 'tracking'}, {'kind': 'country', 'value': 'RU'}]})
+a.wait(lambda: any(e['t'] == 'rules' for e in a.events), 5)
+check('iptables: rules accepted', any(e['t'] == 'rules' and e['ok'] for e in a.events), [e for e in a.events if e['t'] == 'rules'])
+check('iptables: WhoSees chain present while running', ipt_chain())
+check('iptables: no nftables table used', not nft_table())
+time.sleep(0.3)
+check('iptables: blocked website refused (first try)', not tls('ads.doubleclick.net'))
+check('iptables: the very first request to a new tracker is refused', not beacon('static.hotjar.com'))
+check('iptables: "all trackers and ads" refuses an analytics site', not tls('static.hotjar.com'))
+check('iptables: ordinary site still works', tls('api.anthropic.com'))
+a.wait(lambda: any(e['t'] == 'warn' and 'nftables' in e.get('msg', '') for e in a.events), 2)
+check('iptables: a country block says it needs nftables', any(e['t'] == 'warn' and 'nftables' in e.get('msg', '') for e in a.events), [e for e in a.events if e['t'] == 'warn'])
+time.sleep(2.3)
+check('iptables: stopped attempts are counted', any(e['t'] == 'blockstats' and e.get('ips') for e in a.events), [e for e in a.events if e['t'] == 'blockstats'][-1:])
+a.stop(); time.sleep(0.3)
+check('iptables: chain removed after stop', not ipt_chain())
+del os.environ['WT_FIREWALL']
 
 # ---------- Threat alerts ----------
 a = Agent()
 alerts = lambda: [e for e in a.events if e['t'] == 'alert']
 kinds = lambda: {e['alert']['kind'] for e in alerts()}
-check('threat lists loaded', any(e['t'] == 'hello' and e.get('threats') == [2, 1] for e in a.events), [e.get('threats') for e in a.events if e['t'] == 'hello'])
+check('threat lists loaded', any(e['t'] == 'hello' and e.get('threats') == [2, 2] for e in a.events), [e.get('threats') for e in a.events if e['t'] == 'hello'])
 resolve('evil-c2.example')
 a.wait(lambda: 'malicious-lookup' in kinds(), 3)
 check('alert: lookup of a dangerous website', 'malicious-lookup' in kinds(), kinds())

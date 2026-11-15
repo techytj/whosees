@@ -75,6 +75,13 @@ struct OpenEv<'a> {
 }
 
 pub static HOME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+/// True when a "kind of company" rule covers every website name seen on this address (plus `extra`, the name this
+/// connection asked for). An address that also serves an ordinary website is never blocked by such a rule.
+fn only_matching_names(b: &block::Blocker, hostdb: &hosts::Hosts, seen: Option<&std::collections::HashSet<String>>, extra: Option<&str>) -> bool {
+    let mut names = seen.into_iter().flatten().map(|s| s.as_str()).chain(extra).peekable();
+    names.peek().is_some() && names.all(|n| b.matches_category(hostdb.lookup(n).map(|i| i.category.as_str())))
+}
+
 /// The WhoSees app itself (its program path, from the UI). Its own traffic is shown, never flagged as a threat.
 pub static SELF_EXE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 fn is_self(exe: Option<&str>) -> bool {
@@ -96,7 +103,7 @@ fn main() {
     let (mut deep, mut cats_path) = (false, None::<PathBuf>);
     let (mut connect, mut token) = (None::<String>, String::new());
     let mut threats_dir = None::<PathBuf>;
-    let mut blocking = false; // blocking ships disabled in v1; kept for a future release
+    let mut blocking = false; // the app passes --blocking; blocking also needs Deep mode (firewall rules need admin rights)
     while let Some(a) = args.next() {
         match a.as_str() {
             "--geo" => geo_path = args.next().map(PathBuf::from),
@@ -196,7 +203,11 @@ fn main() {
     let mut blocker = block::Blocker::new(deep_on && blocking);
     let mut threats = threats_dir.as_ref().map(|d| threats::Threats::load(d)).unwrap_or_default();
     let mut last_block_stats = Instant::now();
+    let mut described: HashSet<IpAddr> = HashSet::new(); // stopped addresses already described to the UI (blockstats "where")
     let mut dns: HashMap<IpAddr, String> = HashMap::new();
+    // every website name seen on each address: a "kind of company" block skips addresses shared with ordinary websites (CDNs, clouds)
+    let mut ip_names: HashMap<IpAddr, std::collections::HashSet<String>> = HashMap::new();
+    let mut early: Vec<(sniff::Obs, bool)> = Vec::new(); // seen while waiting for the next tick (lookups already acted on)
     let mut flow_host: HashMap<(Proto, sniff::FlowKey), String> = HashMap::new();
     let mut pending_data: HashMap<Key, Vec<datatypes::DataItem>> = HashMap::new(); // seen before the connection was reported
 
@@ -220,14 +231,17 @@ fn main() {
         let mut late_hosts: Vec<(Key, String)> = Vec::new();
         let mut late_data: Vec<(Key, Vec<datatypes::DataItem>)> = Vec::new();
         let mut dns_late: Vec<(IpAddr, String)> = Vec::new();
-        while let Ok(o) = obs_rx.try_recv() {
+        let batch: Vec<(sniff::Obs, bool)> = early.drain(..).chain(std::iter::from_fn(|| obs_rx.try_recv().ok()).map(|o| (o, false))).collect();
+        for (o, handled) in batch {
             match o {
                 sniff::Obs::Dns { name, ips } => {
                     if let Some(a) = threats.check_lookup(&name) {
                         emit(&mut out, &serde_json::json!({"t":"alert","conn":null,"host":name,"remote":ips.first().map(|i| i.to_string()),"alert":a}));
                     }
-                    if blocker.has_rules() && blocker.matches(Some(&name), hostdb.lookup(&name).map(|i| i.owner.as_str())) && blocker.add(&ips) {
-                        emit(&mut out, &serde_json::json!({"t":"blockhost","host":name,"ips":ips}));
+                    if !handled {
+                        if let Some(t) = block_on_lookup(&mut blocker, &hostdb, &mut ip_names, &name, &ips) {
+                            emit(&mut out, &serde_json::json!({"t":"blockhost","host":name,"ips":t}));
+                        }
                     }
                     for ip in &ips { dns.insert(*ip, name.clone()); }
                     dns_late.extend(ips.into_iter().map(|ip| (ip, name.clone())));
@@ -266,20 +280,25 @@ fn main() {
                 // re-check addresses we already know about
                 if r.is_ok() && blocker.has_rules() {
                     let known: Vec<IpAddr> = dns.iter().filter(|(_, h)| {
-                        let o = hostdb.lookup(h).map(|i| i.owner.as_str());
-                        blocker.matches(Some(h.as_str()), o)
+                        let hi = hostdb.lookup(h);
+                        blocker.matches_name(Some(h.as_str()), hi.map(|i| i.owner.as_str()))
                     }).map(|(ip, _)| *ip).collect();
                     blocker.add(&known);
+                    let by_cat: Vec<IpAddr> = ip_names.iter().filter(|(_, names)| only_matching_names(&blocker, &hostdb, Some(names), None)).map(|(ip, _)| *ip).collect();
+                    blocker.add_category(&by_cat);
                     let open: Vec<IpAddr> = conns.keys().filter(|k| {
                         let h = dns.get(&k.remote).map(|s| s.as_str());
                         let gi = geo.as_ref().map(|g| g.lookup(k.remote));
-                        let owner = h.and_then(|h| hostdb.lookup(h)).map(|i| i.owner.clone())
-                            .or_else(|| gi.and_then(|g| g.org).map(|o| classify::owner_short(&o)));
-                        blocker.matches(h, owner.as_deref())
+                        let hi = h.and_then(|h| hostdb.lookup(h));
+                        let owner = hi.map(|i| i.owner.clone()).or_else(|| gi.and_then(|g| g.org).map(|o| classify::owner_short(&o)));
+                        blocker.matches_name(h, owner.as_deref())
                     }).map(|k| k.remote).collect();
                     blocker.add(&open);
+                    let open_cat: Vec<IpAddr> = conns.keys().filter(|k| only_matching_names(&blocker, &hostdb, ip_names.get(&k.remote), dns.get(&k.remote).map(|s| s.as_str()))).map(|k| k.remote).collect();
+                    blocker.add_category(&open_cat);
                 }
                 emit(&mut out, &serde_json::json!({"t":"rules","ok":r.is_ok(),"count":n,"error":r.err()}));
+                if let Some(w) = blocker.warning.take() { emit(&mut out, &serde_json::json!({"t":"warn","msg":w})); }
             }
         }
         if dns.len() > 50_000 { dns.clear(); }
@@ -344,8 +363,10 @@ fn main() {
                     let known = hi.is_some() || matches!(category, "cloud" | "cdn" | "streaming" | "social" | "messaging");
                     let meta = Meta { app_id: app.id.clone(), app_name: app.name.clone(), exe: app.exe.clone(), known, place, internet: sc == Scope::Internet, own };
                     let app_blocked = blocker.blocks_app(app.exe.as_deref());
-                    let blocked = sc == Scope::Internet && (app_blocked || blocker.is_blocked(&s.remote) || blocker.matches(host.as_deref(), owner.as_deref()));
-                    if blocked && !app_blocked { blocker.add(&[s.remote]); }
+                    let by_name = blocker.matches_name(host.as_deref(), owner.as_deref());
+                    let by_cat = !by_name && only_matching_names(&blocker, &hostdb, ip_names.get(&s.remote), host.as_deref());
+                    let blocked = sc == Scope::Internet && (app_blocked || blocker.is_blocked(&s.remote) || by_name || by_cat);
+                    if blocked && !app_blocked && !blocker.is_blocked(&s.remote) { if by_name { blocker.add(&[s.remote]); } else { blocker.add_category(&[s.remote]); } }
                     emit(&mut out, &OpenEv {
                         t: "open", id, ts: now_ms(), existing: first,
                         proto: if s.proto == Proto::Tcp { "tcp" } else { "udp" },
@@ -413,7 +434,27 @@ fn main() {
         if blocker.has_rules() && last_block_stats.elapsed() >= Duration::from_secs(2) {
             last_block_stats = Instant::now();
             let c = blocker.counters();
-            if !c.is_empty() { emit(&mut out, &serde_json::json!({"t":"blockstats","ips":c})); }
+            // An address blocked from its first lookup never shows up as a connection: say where each stopped address
+            // is (once), so the map can still show the attempts.
+            let mut wh = serde_json::Map::new();
+            for ip_s in c.keys() {
+                let Ok(ip) = ip_s.parse::<IpAddr>() else { continue };
+                if !described.insert(ip) { continue; }
+                let g = geo.as_ref().map(|g| g.lookup(ip));
+                let g = g.as_ref().unwrap_or(&empty_geo);
+                let host = dns.get(&ip).cloned();
+                let hi = host.as_deref().and_then(|h| hostdb.lookup(h));
+                let sc = classify::scope(ip);
+                let category: &str = match (sc, hi) {
+                    (Scope::Internet, Some(i)) => &i.category,
+                    (Scope::Internet, None) => g.org.as_deref().map(classify::category_for_org).unwrap_or("other"),
+                    _ => "local",
+                };
+                let owner = hi.map(|i| i.owner.clone()).filter(|o| !o.is_empty()).or_else(|| g.org.as_deref().map(classify::owner_short));
+                wh.insert(ip_s.clone(), serde_json::json!({"host": host, "owner": owner, "category": category,
+                    "site": hi.map(|i| i.service.clone()), "scope": sc, "geo": g}));
+            }
+            if !c.is_empty() { emit(&mut out, &serde_json::json!({"t":"blockstats","ips":c,"where":wh})); }
         }
         if last_stats.elapsed() >= Duration::from_secs(1) || first {
             let (s, r) = conns.values().fold((closed_sent, closed_recv), |(a, b), c| (a + c.sent, b + c.recv));
@@ -424,9 +465,44 @@ fn main() {
         if out.flush().is_err() { break; } // UI went away
         first = false;
         if once { break; }
-        let spent = tick.elapsed();
-        if spent < Duration::from_millis(interval) { std::thread::sleep(Duration::from_millis(interval) - spent); }
+        // Wait for the next tick, but act on website lookups the moment they're seen: an app connects right after
+        // its lookup, so a block must be in the firewall before the connection gets going.
+        let deadline = Instant::now() + Duration::from_millis(interval).saturating_sub(tick.elapsed());
+        loop {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() { break; }
+            match obs_rx.recv_timeout(left) {
+                Ok(sniff::Obs::Dns { name, ips }) => {
+                    if let Some(t) = block_on_lookup(&mut blocker, &hostdb, &mut ip_names, &name, &ips) {
+                        emit(&mut out, &serde_json::json!({"t":"blockhost","host":name,"ips":t}));
+                        let _ = out.flush();
+                    }
+                    early.push((sniff::Obs::Dns { name, ips }, true));
+                }
+                Ok(o) => early.push((o, false)),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => break,
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => { std::thread::sleep(left); break; }
+            }
+        }
     }
+}
+
+/// A website lookup was seen: block its addresses now if a rule covers it. Returns the addresses newly blocked.
+fn block_on_lookup(blocker: &mut block::Blocker, hostdb: &hosts::Hosts, ip_names: &mut HashMap<IpAddr, std::collections::HashSet<String>>,
+                   name: &str, ips: &[IpAddr]) -> Option<Vec<IpAddr>> {
+    if ip_names.len() > 100_000 { ip_names.clear(); }
+    for ip in ips { ip_names.entry(*ip).or_default().insert(name.to_lowercase()); }
+    if !blocker.has_rules() { return None; }
+    let hi = hostdb.lookup(name);
+    if blocker.matches_name(Some(name), hi.map(|i| i.owner.as_str())) {
+        return blocker.add(ips).then(|| ips.to_vec());
+    }
+    if blocker.matches_category(hi.map(|i| i.category.as_str())) {
+        let t: Vec<IpAddr> = ips.iter().copied().filter(|ip| only_matching_names(blocker, hostdb, ip_names.get(ip), None)).collect();
+        return (!t.is_empty() && blocker.add_category(&t)).then_some(t);
+    }
+    blocker.release(ips); // an ordinary website shares these addresses: a tracker rule mustn't take it down
+    None
 }
 
 /// Windows Deep mode: add byte counts from ETW, plus flows the socket table never showed

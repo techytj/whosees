@@ -14,7 +14,7 @@ run() { # name, command...
   local pass=$(grep -c "^PASS" "$out/$name.log"); local fail=$(grep -c "^FAIL" "$out/$name.log")
   result[$name]="$([ "$rc" = 0 ] && echo PASS || echo FAIL)  ($pass passed, $fail failed)"
 }
-run unit        bash -c 'cd desktop/agent && cargo build --release -q && cargo test --release -q 2>&1 | sed "s/^test result: ok.*/PASS unit tests &/; s/^test result: FAILED.*/FAIL unit tests &/"'
+run unit        bash -c 'cd desktop/agent && cargo build --release -q && cargo test --release -q 2>&1 | sed "s/^test result: ok.*/PASS unit tests &/; s/^test result: FAILED.*/FAIL unit tests &/"; s=${PIPESTATUS[0]}; cd ../.. && node tests/report/run.mjs && exit $s'
 run sandbox     unshare -rn bash tests/sandbox/net.sh
 run engine      bash -c 'cd android/engine && cargo build --release -q --example linux_harness && cd ../.. && TESTPY=$PWD/tests/sandbox/engine.py unshare -rn bash tests/sandbox/net.sh'
 run ui          python3 -I tests/ui/tests.py "$out/ui"

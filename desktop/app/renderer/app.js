@@ -1,12 +1,15 @@
-import { createMap, Flows } from './map.js';
+import { createMap, Flows, maplibregl, mapStyle } from './map.js';
+import { buildReport, snapshotMap, fontCss, reportFileName, paperFor } from './report.js';
 import { Session, CATEGORIES, TRACKING, bytes, rate, ago, placeName, countryName } from './model.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wt = window.wt;
 const DEVICE = wt.platform === 'android' ? 'phone' : 'computer'; // wording
-// v1 scope: see what leaves the device. Blocking is built but switched off for a future release.
-const FEATURES = { blocking: false };
+// Blocking works only while a live view runs (Deep mode on a computer, always on Android). Blocks end when the
+// person presses Stop, unless they mark them "Keep".
+const FEATURES = { blocking: true };
+const TRACKING_RULE = { kind: 'category', value: 'tracking', label: 'All trackers and ads' };
 // WhoSees is free, all of it. Support is voluntary: a one-off tip through PayPal.Me (set your PayPal.Me link here).
 const SUPPORT_URL = 'https://www.paypal.com/paypalme/techytj';
 const SUPPORT_AMOUNTS = [5, 10, 15];
@@ -18,7 +21,8 @@ const state = {
 const session = new Session();
 let map, flows;
 window.__wt = { session, get map() { return map; }, get flows() { return flows; },
-  reloadSettings: async () => { state.settings = await wt.getSettings(); render(true); if (state.view) renderDetail(); } }; // for automated UI checks
+  reloadSettings: async () => { state.settings = await wt.getSettings(); render(true); if (state.view) renderDetail(); },
+  saveReport: (o) => saveReport(o), openReport: () => openReport() }; // for automated UI checks
 
 // ---------- boot ----------
 (async function boot() {
@@ -39,7 +43,9 @@ window.__wt = { session, get map() { return map; }, get flows() { return flows; 
   state.user = info.user; state.version = info.version || '0.0.0';
   if (!info.agent) toast('Capture agent missing — build it with cargo build --release');
 
+  await endSessionBlocks(); // left over if WhoSees was closed during a live view
   bindUi();
+  $('#reportBtn').onclick = openReport; $('#heroReport').onclick = openReport;
   syncDeepChip();
   if (!FEATURES.blocking) document.querySelector('[data-tab=blocked]')?.remove();
   renderTabs();
@@ -51,7 +57,7 @@ window.__wt = { session, get map() { return map; }, get flows() { return flows; 
   setTimeout(updatesAtLaunch, 1200);
   session.on(onSessionEvent);
   wt.onEvents((evs) => session.ingest(evs));
-  wt.onExit(() => { if (state.running) { setRunning(false); toast('Live view stopped'); } });
+  wt.onExit(async () => { if (state.running) { setRunning(false); await endSessionBlocks(); toast('Live view stopped'); } });
   setInterval(render, 500);
   render(true);
 })();
@@ -106,12 +112,16 @@ function ruleMatches(r, p) {
     case 'company': return [...p.owners.keys()].some((o) => o.toLowerCase() === r.value.toLowerCase());
     case 'host': return [...p.hosts].some((h) => h === r.value || h.endsWith('.' + r.value));
     case 'country': return p.geo?.country === r.value;
-    case 'ip': return [...p.conns].some((id) => session.conns.get(id)?.remote === r.value);
+    case 'ip': return !!p.stops?.has(r.value) || [...p.conns].some((id) => session.conns.get(id)?.remote === r.value);
+    // like the agents: judged by website names, never by a guess from the address owner
+    case 'category': return [...p.conns].map((id) => session.conns.get(id)).concat([...(p.stops?.values() || [])])
+      .some((c) => !!c?.host && (c.category === r.value || (r.value === 'tracking' && TRACKING.has(c.category))));
   }
   return false;
 }
 const placeRules = (p) => rules().filter((r) => ruleMatches(r, p));
-const isBlockedPlace = (p) => p.scope === 'internet' && placeRules(p).length > 0;
+// "Blocked" is only ever shown when blocking was really on for this live view (Standard mode can't block)
+const isBlockedPlace = (p) => p.scope === 'internet' && session.blocking && placeRules(p).length > 0;
 const fullCapture = () => session.mode === 'deep' || session.mode === 'vpn'; // Android's VPN sees everything
 const blockingLive = () => state.running && fullCapture() && session.blocking;
 
@@ -119,12 +129,40 @@ function pushRules() {
   if (!state.running || !fullCapture()) return;
   wt.send({ cmd: 'rules', rules: rules().map(({ kind, value }) => ({ kind, value })) });
 }
-async function addRule(kind, value, label) {
+const needsDeep = () => wt.platform !== 'android' && !state.settings.deep;
+async function addRule(kind, value, label, { keep = false } = {}) {
   if (rules().some((r) => r.kind === kind && r.value === value)) return;
-  state.settings = await wt.setSettings({ rules: [...rules(), { kind, value, label, added: Date.now() }] });
+  state.settings = await wt.setSettings({ rules: [...rules(), { kind, value, label, keep, added: Date.now() }] });
   pushRules();
-  toast(blockingLive() ? `Blocked ${label}` : `${label} added to your block list. It takes effect during a Deep mode live view.`);
   render(true); renderTabs();
+  if (needsDeep()) return askForDeep(label, kind, value);
+  toast(blockingLive() ? `Blocked ${label}${keep ? '. WhoSees will keep blocking it in future live views.' : ' until you press Stop'}`
+    : `${label} will be blocked while your next live view runs`, 4500);
+}
+// The firewall needs administrator rights, which only Deep mode asks for.
+function askForDeep(label, kind, value) {
+  const d = $('#dlg');
+  d.innerHTML = `<div class="dlg"><div class="dlg-icon"><svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></svg></div>
+    <h3>Blocking needs Deep mode</h3>
+    <p class="sub">To stop apps reaching <b>${esc(label)}</b>, WhoSees adds a temporary rule to this computer's firewall. That needs ${wt.platform === 'win32' ? 'administrator permission' : 'your password'}, which Deep mode asks for when a live view starts. The rule is removed when you press Stop.</p>
+    <div class="foot"><button class="ghost" id="deepLater">Not now</button><button class="primary" id="deepOn">Turn on Deep mode${state.running ? ' and restart' : ''}</button></div></div>`;
+  if (!d.open) d.showModal();
+  // without Deep mode nothing can be blocked: don't leave a block on the list that isn't doing anything
+  d.querySelector('#deepLater').onclick = async () => { d.close(); await removeRules((r) => r.kind === kind && r.value === value); refreshAlertCards(); toast(`Not blocked. Turn on Deep mode in Settings to block ${label}.`, 4500); };
+  d.querySelector('#deepOn').onclick = async () => {
+    d.close();
+    state.settings = await wt.setSettings({ deep: true }); syncDeepChip();
+    if (state.running) { await wt.stop(); setRunning(false); start(); }
+    else toast('Deep mode is on. Press Start to begin blocking.');
+  };
+}
+// Blocks not marked "Keep" end with the live view (also after a crash or closing the window mid-view).
+async function endSessionBlocks() {
+  const gone = rules().filter((r) => !r.keep);
+  if (!gone.length) return 0;
+  state.settings = await wt.setSettings({ rules: rules().filter((r) => r.keep) });
+  renderTabs();
+  return gone.length;
 }
 async function removeRules(match) {
   state.settings = await wt.setSettings({ rules: rules().filter((r) => !match(r)) });
@@ -194,9 +232,9 @@ async function alertAction(kind, id) {
   const a = session.alerts.find((x) => x.id === +id);
   if (!a) return;
   if (kind === 'block') {
-    if (a.block) await addRule(a.block.kind, a.block.value, a.block.label);
     for (const x of session.alerts) if (x.block && a.block && x.block.kind === a.block.kind && x.block.value === a.block.value) x.status = 'blocked';
-    if (!blockingLive()) setTimeout(() => toast(state.settings.deep ? 'Blocked from your next Deep mode live view.' : 'Added to your block list. Turn on Deep mode for blocking to take effect.'), 400);
+    if (a.block) await addRule(a.block.kind, a.block.value, a.block.label, { keep: true }); // a dangerous site stays blocked
+    if (!blockingLive()) for (const x of session.alerts) if (x.status === 'blocked' && x.block && a.block && x.block.kind === a.block.kind && x.block.value === a.block.value) x.status = 'new';
   } else if (kind === 'trust') {
     const same = session.alerts.filter((x) => x === a || (x.block && a.block && x.block.kind === a.block.kind && x.block.value === a.block.value));
     state.settings = await wt.setSettings({ trusted: [...new Set([...trusted(), ...same.map((x) => x.key)])] });
@@ -262,6 +300,8 @@ async function start() {
 }
 async function stop() {
   await wt.stop(); setRunning(false);
+  const ended = await endSessionBlocks();
+  if (ended) toast(`${ended} ${ended === 1 ? 'block' : 'blocks'} ended with this live view. Choose Keep in Blocked to keep one.`, 5000);
   // they turned Private DNS off for WhoSees: remind them, once, to turn it back on
   if (wt.privateDns && state.settings.privateDnsWas && !(await wt.privateDns().catch(() => ({}))).server) {
     toast('Private DNS is still off. To turn it back on: Settings, then search "Private DNS".', 9000);
@@ -286,6 +326,8 @@ function setRunning(on) {
   } else {
     $('#statusText').textContent = session.started ? 'Stopped' : 'Ready';
     if (session.started) {
+      session.ended ??= Date.now();
+      $('#heroReport').hidden = false;
       const sm = session.summary();
       $('#hero').querySelector('h1').textContent = 'Live view stopped';
       $('#hero').querySelector('p').textContent =
@@ -305,6 +347,9 @@ function onSessionEvent(type, d) {
       state.fresh.add('c' + d.conn.id); state.fresh.add('a' + d.app.id); state.fresh.add('p' + d.place.key);
       flows.flow(d.place, 2000);
     } else flows.flow(d.place, 400);
+    scheduleFit();
+  } else if (type === 'stopped') { // blocked before it ever connected: on the map with its red ring, no flow
+    flows.born(d.place.key); state.fresh.add('p' + d.place.key);
     scheduleFit();
   } else if (type === 'flow') {
     flows.flow(d.place, d.sent, d.recv);
@@ -350,6 +395,7 @@ function renderStats() {
   $('#sPlaces').textContent = sm.places;
   $('#sCountries').textContent = `${sm.countries} ${sm.countries === 1 ? 'country' : 'countries'}`;
   $('#sTrack').textContent = sm.tracking;
+  $('#reportBtn').hidden = !session.started;
   drawSpark();
 }
 
@@ -430,7 +476,7 @@ function renderList() {
       return `<div class="row ${state.fresh.has('a' + a.id) ? 'fresh' : ''}" data-app="${esc(a.id)}">
         ${live ? '<span class="live-dot"></span>' : ''}${iconHtml(a)}
         <div class="main"><div class="t">${esc(a.name)}</div><div class="s">${sub}</div>
-          ${tracking || isBlockedApp(a) ? `<div class="chips">${tracking ? catChip('tracker') : ''}${isBlockedApp(a) ? '<span class="chip" style="--cc:var(--danger)">Blocked</span>' : ''}</div>` : ''}
+          ${tracking || (session.blocking && isBlockedApp(a)) ? `<div class="chips">${tracking ? catChip('tracker') : ''}${session.blocking && isBlockedApp(a) ? '<span class="chip" style="--cc:var(--danger)">Blocked</span>' : ''}</div>` : ''}
           <div class="bar"><i style="width:${(a.sent / max) * 100}%"></i></div></div>
         <div class="r"><b>${bytes(a.sent)}</b><small data-ago="${a.last}">${ago(a.last)}</small></div></div>`;
     }).join('');
@@ -456,14 +502,19 @@ function renderList() {
     html = `<div class="note">${lists} Everything is checked on this ${DEVICE}.</div>` + (list.map((a) => `<div class="alert-card inline ${a.severity}" data-alert="${a.id}">${alertCardHtml(a)}</div>`).join('')
       || '<div class="empty"><b>No alerts</b>Nothing suspicious so far.</div>');
   } else if (state.tab === 'blocked') {
-    const KIND = { company: 'Company', host: 'Website', country: 'Country', ip: 'Address', app: 'App', uid: 'App' };
-    const note = blockingLive() ? '<div class="note ok">Blocking is active for this live view.</div>'
-      : '<div class="note">Your block list is applied whenever a Deep mode live view is running.</div>';
-    html = note + (rules().filter((r) => matches(r.label, r.value)).map((r, i) => `<div class="row" data-rule="${i}">
+    const KIND = { company: 'Company', host: 'Website', country: 'Country', ip: 'Address', app: 'Whole app', uid: 'Whole app', category: 'Kind of company' };
+    const note = blockingLive() ? '<div class="note ok">Blocking is on. Blocks end when you press Stop, except the ones you keep.</div>'
+      : needsDeep() ? '<div class="note">Blocking works during a Deep mode live view (Settings → Deep mode). Blocks end when you press Stop, except the ones you keep.</div>'
+      : '<div class="note">Your blocks apply while a live view runs. They end when you press Stop, except the ones you keep.</div>';
+    const trackOn = rules().some((r) => r.kind === 'category' && r.value === 'tracking');
+    const all = `<div class="row track-all"><div class="main"><div class="t">Block all trackers and ads</div><div class="s">Stops every app reaching known tracking, advertising and analytics companies</div></div>
+      <button class="switch ${trackOn ? 'on' : ''}" id="blockTracking" aria-label="Block all trackers and ads" aria-pressed="${trackOn}"></button></div>`;
+    html = note + all + (rules().map((r, i) => [r, i]).filter(([r]) => !(r.kind === 'category' && r.value === 'tracking') && matches(r.label, r.value)).map(([r, i]) => `<div class="row" data-rule="${i}">
         <div class="ic sm cc" style="color:var(--danger)">${r.kind === 'country' ? esc(r.value) : '<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></svg>'}</div>
-        <div class="main"><div class="t">${esc(r.label)}</div><div class="s">${KIND[r.kind] || r.kind}${r.kind !== 'country' && r.label !== r.value ? ` · <span class="mono">${esc(r.value)}</span>` : ''}</div></div>
+        <div class="main"><div class="t">${esc(r.label)}</div><div class="s">${KIND[r.kind] || r.kind}${r.kind !== 'country' && r.label !== r.value ? ` · <span class="mono">${esc(r.value)}</span>` : ''}${r.keep ? ' · kept' : ' · until Stop'}</div></div>
+        <button class="ghost sm keep${r.keep ? ' on' : ''}" data-keep="${i}" aria-pressed="${!!r.keep}" title="${r.keep ? 'Kept for future live views' : 'Keep blocking it in future live views'}">${r.keep ? 'Kept' : 'Keep'}</button>
         <button class="ghost sm" data-unblock="${i}">Unblock</button></div>`).join('')
-      || '<div class="empty"><b>Nothing blocked</b>Open a place on the map and choose Block to stop an app talking to it.</div>');
+      || '<div class="empty"><b>Nothing else blocked</b>Open an app or a place on the map and choose Block.</div>');
   } else {
     const places = [...session.places.values()].filter((p) => p.scope === 'internet')
       .filter((p) => matches(...p.owners.keys(), ...p.sites.keys(), p.geo?.city, countryName(p.geo?.country)))
@@ -519,22 +570,25 @@ function renderDetail() {
     const apps = [...p.apps].map((id) => session.apps.get(id)).filter(Boolean);
     const conns = [...p.conns].map((id) => session.conns.get(id)).filter(Boolean);
     const enc = conns.every((c) => c.encrypted);
-    const appNames = apps.length === 1 ? esc(apps[0].name) : `${esc(apps[0]?.name)} and ${apps.length - 1} other ${apps.length === 2 ? 'app' : 'apps'}`;
+    // no apps: the firewall stopped every attempt before a connection showed up, so who tried isn't known
+    const appNames = !apps.length ? 'An app' : apps.length === 1 ? esc(apps[0].name) : `${esc(apps[0].name)} and ${apps.length - 1} other ${apps.length === 2 ? 'app' : 'apps'}`;
     el.innerHTML = `${backBtn()}
       <div class="dhead"><div class="ic cc" style="color:var(--c-${cat})">${esc(p.geo?.country || '??')}</div><div><h2>${esc(owner)}</h2><p>${esc(placeName(p.geo))}${p.geo?.region ? ' · ' + esc(p.geo.region) : ''}</p></div></div>
-      <div class="sentence">${isBlockedPlace(p) && p.sent === 0 ? `${appNames} tried to reach ${esc(owner)}${cat === 'other' ? '' : ', ' + CATEGORIES[cat].plain + ','} in ${esc(placeName(p.geo))}. <b>WhoSees blocked it</b>, so nothing was sent.` : `${appNames} sent <b>${bytes(p.sent)}</b> to ${esc(owner)}${cat === 'other' ? '' : ', ' + CATEGORIES[cat].plain + ','} in ${esc(placeName(p.geo))}. ${enc ? 'The traffic was encrypted, so its contents are private between the app and the server.' : 'Some of this traffic was <b>not encrypted</b>.'}`}</div>
+      <div class="sentence">${!conns.length ? `${appNames} tried to reach ${esc(owner)}${cat === 'other' ? '' : ', ' + CATEGORIES[cat].plain + ','} in ${esc(placeName(p.geo))}. <b>WhoSees stopped it before it could connect</b>, so nothing was sent.`
+        : isBlockedPlace(p) && p.sent === 0 ? `${appNames} tried to reach ${esc(owner)}${cat === 'other' ? '' : ', ' + CATEGORIES[cat].plain + ','} in ${esc(placeName(p.geo))}. <b>WhoSees blocked it</b>, so nothing was sent.` : `${appNames} sent <b>${bytes(p.sent)}</b> to ${esc(owner)}${cat === 'other' ? '' : ', ' + CATEGORIES[cat].plain + ','} in ${esc(placeName(p.geo))}. ${enc ? 'The traffic was encrypted, so its contents are private between the app and the server.' : 'Some of this traffic was <b>not encrypted</b>.'}`}</div>
       ${dataSection([...p.conns], 'What was sent here')}
-      <div class="kpis"><div class="kpi"><label>Sent</label><b>${bytes(p.sent)}</b></div><div class="kpi"><label>Received</label><b>${bytes(p.recv)}</b></div><div class="kpi"><label>Connections</label><b>${conns.length}</b></div></div>
+      <div class="kpis"><div class="kpi"><label>Sent</label><b>${bytes(p.sent)}</b></div><div class="kpi"><label>Received</label><b>${bytes(p.recv)}</b></div>${conns.length ? `<div class="kpi"><label>Connections</label><b>${conns.length}</b></div>` : `<div class="kpi"><label>Attempts stopped</label><b>${session.stoppedAt(p)}</b></div>`}</div>
       ${p.sites.size ? `<div class="sec">${state.mode === 'expert' ? 'Hostnames' : 'Websites and services'}</div>
       <div class="sites">${(state.mode === 'expert' ? [...p.hosts] : session.topSites(p.sites, 20)).map((x) => `<span class="${state.mode === 'expert' ? 'mono' : ''}">${esc(x)}</span>`).join('')}</div>` : ''}
-      <div class="sec">Apps talking to it</div>
+      ${apps.length ? '<div class="sec">Apps talking to it</div>' : ''}
       ${apps.map((a) => `<div class="row" data-app="${esc(a.id)}">${iconHtml(a, 'sm')}<div class="main"><div class="t">${esc(a.name)}</div></div></div>`).join('')}
       ${blockSection(p, owner)}
       <div class="sec">Details</div>
       <dl class="kv"><dt>Category</dt><dd>${catChip(cat)}</dd><dt>Owner</dt><dd>${esc(p.geo?.org || owner)}</dd>
         <dt>Location</dt><dd>${esc([p.geo?.city, p.geo?.region, countryName(p.geo?.country)].filter(Boolean).join(', '))}</dd>
         ${state.mode === 'expert' ? `<dt>Network</dt><dd class="mono">AS${p.geo?.asn ?? '?'}</dd>
-        <dt>Addresses</dt><dd class="mono">${[...new Set(conns.map((c) => `${c.remote} :${c.rport} ${c.service}`))].map(esc).join('<br>')}</dd>` : `<dt>Type</dt><dd>${[...new Set(conns.map((c) => c.what))].map(esc).join(', ')}</dd>`}
+        <dt>Addresses</dt><dd class="mono">${[...new Set([...conns.map((c) => `${c.remote} :${c.rport} ${c.service}`), ...[...(p.stops?.keys() || [])].map((ip) => `${ip} (stopped)`)])].map(esc).join('<br>')}</dd>`
+        : conns.length ? `<dt>Type</dt><dd>${[...new Set(conns.map((c) => c.what))].map(esc).join(', ')}</dd>` : ''}
       </dl>`;
     flows.focus = new Set([p.key]);
   }
@@ -547,7 +601,7 @@ function appBlockBox(a) {
   if (!FEATURES.blocking) return '';
   const r = appRule(a);
   if (!r || a.system) return '';
-  if (isBlockedApp(a)) return `<div class="blockbox on"><div><b>Blocked from the internet</b><small>${blockingLive() ? 'WhoSees is stopping this app' : wt.platform === 'android' ? 'applies while a live view is on' : 'applies during a Deep mode live view'}</small></div>
+  if (isBlockedApp(a)) return `<div class="blockbox on"><div><b>${session.blocking ? 'Blocked from the internet' : 'On your block list'}</b><small>${blockingLive() ? 'WhoSees is stopping this app' : session.blocking ? 'Blocked during this live view' : state.running || session.started ? 'Not blocked in this live view: blocking needs Deep mode' : wt.platform === 'android' ? 'applies while a live view is on' : 'applies during a Deep mode live view'}</small></div>
     <button class="ghost sm" data-unblock-app="${esc(r.value)}">Unblock</button></div>`;
   return `<div class="blockbtns" style="padding:0 6px 12px"><button class="ghost sm danger" data-block-kind="${r.kind}" data-block-value="${esc(r.value)}" data-block-label="${esc(a.name)}">Block ${esc(a.name)} from the internet</button></div>`;
 }
@@ -557,7 +611,7 @@ function blockSection(p, owner) {
   const active = placeRules(p);
   const stopped = session.stoppedAt(p);
   if (active.length) {
-    return `<div class="blockbox on"><div><b>Blocked</b><small>${esc(active.map((r) => r.label).join(', '))}${stopped ? ` · ${stopped} ${stopped === 1 ? 'attempt' : 'attempts'} stopped` : ''}${blockingLive() ? '' : ' · applies during a Deep mode live view'}</small></div>
+    return `<div class="blockbox on"><div><b>${session.blocking ? 'Blocked' : 'On your block list'}</b><small>${esc(active.map((r) => r.label).join(', '))}${stopped ? ` · ${stopped} ${stopped === 1 ? 'attempt' : 'attempts'} stopped` : ''}${session.blocking ? '' : ' · Not blocked in this live view: blocking needs Deep mode'}</small></div>
       <button class="ghost sm" data-unblock-place="${esc(p.key)}">Unblock</button></div>`;
   }
   const hosts = [...new Set([...p.hosts].map(baseDomain))].slice(0, 4);
@@ -566,6 +620,7 @@ function blockSection(p, owner) {
     ${owner && owner !== 'Unknown company' ? btn('company', owner, owner, `Block ${esc(owner)}`, 'danger') : ''}
     ${hosts.map((h) => btn('host', h, h, `Block ${esc(h)}`)).join('')}
     ${p.geo?.country ? btn('country', p.geo.country, countryName(p.geo.country), `Block all of ${esc(countryName(p.geo.country))}`) : ''}
+    ${TRACKING.has(session.topCat(p.cats)) ? btn('category', 'tracking', 'All trackers and ads', 'Block all trackers and ads') : ''}
     ${state.mode === 'expert' ? [...new Set([...p.conns].map((id) => session.conns.get(id)?.remote).filter(Boolean))].slice(0, 4).map((ip) => btn('ip', ip, ip, `Block <span class="mono">${esc(ip)}</span>`)).join('') : ''}
   </div>${!state.settings.deep && wt.platform !== 'android' ? '<p class="hint">Blocking needs Deep mode (Settings).</p>' : ''}`;
 }
@@ -608,9 +663,9 @@ function tipHtml(p) {
     <div class="tip-owner">${esc(owner)} ${catChip(cat)}</div>
     ${p.sites.size ? `<div class="tip-where" style="margin-top:4px">${esc(session.topSites(p.sites, 3).join(' · '))}${p.sites.size > 3 ? ` +${p.sites.size - 3}` : ''}</div>` : ''}
     ${(p.alerts || 0) > 0 ? `<div class="tip-blocked">⚠ ${p.alerts} ${p.alerts === 1 ? 'alert' : 'alerts'}</div>` : ''}
-    ${isBlockedPlace(p) ? `<div class="tip-blocked">Blocked${session.stoppedAt(p) ? ` · ${session.stoppedAt(p)} attempts stopped` : ''}</div>` : ''}
+    ${isBlockedPlace(p) ? `<div class="tip-blocked">Blocked${session.stoppedAt(p) ? ` · ${session.stoppedAt(p)} ${session.stoppedAt(p) === 1 ? 'attempt' : 'attempts'} stopped` : ''}</div>` : ''}
     ${tipData(p)}
-    <div class="tip-label">Sending here</div>
+    ${rows.length ? '<div class="tip-label">Sending here</div>' : ''}
     ${rows.slice(0, 5).map((r) => `<div class="tip-app">${iconHtml(r.app, 'xs')}<span class="n">${esc(r.app.name)}</span>${r.live ? '<span class="on"></span>' : ''}<b>${bytes(r.sent)}</b></div>`).join('')}
     ${rows.length > 5 ? `<div class="tip-more">+${rows.length - 5} more apps</div>` : ''}`;
 }
@@ -650,6 +705,15 @@ function bindUi() {
     if (ua) return removeRules((r) => (r.kind === 'app' || r.kind === 'uid') && r.value === ua.dataset.unblockApp);
     const ub = e.target.closest('[data-unblock-place]');
     if (ub) { const p = session.places.get(ub.dataset.unblockPlace); return p && removeRules((r) => ruleMatches(r, p)); }
+    if (e.target.closest('#blockTracking')) {
+      return rules().some((r) => r.kind === 'category' && r.value === 'tracking')
+        ? removeRules((r) => r.kind === 'category' && r.value === 'tracking') : addRule(TRACKING_RULE.kind, TRACKING_RULE.value, TRACKING_RULE.label);
+    }
+    const kp = e.target.closest('[data-keep]');
+    if (kp) {
+      const list = rules().map((r, i) => (i === +kp.dataset.keep ? { ...r, keep: !r.keep } : r));
+      return wt.setSettings({ rules: list }).then((s) => { state.settings = s; render(true); });
+    }
     const ur = e.target.closest('[data-unblock]');
     if (ur) { const r = rules()[+ur.dataset.unblock]; return r && removeRules((x) => x === r || (x.kind === r.kind && x.value === r.value)); }
     const r = e.target.closest('.row'); if (!r) return;
@@ -756,6 +820,58 @@ function privacyReport(a, places) {
       <li>${d.seen.length ? `<b>${d.seen.length}</b> kinds of data seen in readable traffic` : 'Nothing readable was seen leaving'}</li>
       <li>${unenc ? `<b>${unenc}</b> unencrypted ${unenc === 1 ? 'connection' : 'connections'}` : 'All connections encrypted'}</li></ul></div>`;
 }
+// ---------- report (PDF): made on this device, never uploaded ----------
+const REPORT_ICON = '<svg viewBox="0 0 24 24" width="26" height="26"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8l-5-5Z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7M8.5 9.5h2.5"/></svg>';
+function openReport() {
+  if (!session.started) { toast('Start a live view first: the report covers what it finds.'); return; }
+  const d = $('#dlg'), s = state.settings;
+  const theme = s.reportTheme || 'dark', paper = s.reportPaper || paperFor();
+  d.innerHTML = `<div class="dlg"><div class="dlg-icon">${REPORT_ICON}</div>
+    <h3>Save a report</h3>
+    <p class="sub">A PDF of everything this live view found: the apps, the companies and countries that received data, trackers, threats and every connection. It's made on this ${DEVICE} and isn't uploaded anywhere.</p>
+    <div class="opt"><div><b>Style</b><small>Light uses less ink if you print it</small></div>
+      <div class="seg" id="repTheme">${['dark', 'light'].map((t) => `<button data-v="${t}" class="${t === theme ? 'on' : ''}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div></div>
+    <div class="opt"><div><b>Paper size</b><small>Letter in North America, A4 almost everywhere else</small></div>
+      <div class="seg" id="repPaper">${[['letter', 'Letter'], ['a4', 'A4']].map(([v, l]) => `<button data-v="${v}" class="${v === paper ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+    ${wt.platform === 'android' ? '<p class="fine-print">Next, Android opens its print screen. Choose <b>Save as PDF</b> at the top, then tap the round PDF button.</p>' : ''}
+    <div class="foot"><button class="ghost" id="repCancel">Cancel</button><button class="primary" id="repGo">Save PDF</button></div></div>`;
+  if (!d.open) d.showModal();
+  const seg = (id, key) => { d.querySelector(id).onclick = async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    for (const x of d.querySelectorAll(`${id} button`)) x.classList.toggle('on', x === b);
+    state.settings = await wt.setSettings({ [key]: b.dataset.v });
+  }; };
+  seg('#repTheme', 'reportTheme'); seg('#repPaper', 'reportPaper');
+  d.querySelector('#repCancel').onclick = () => d.close();
+  d.querySelector('#repGo').onclick = async (e) => {
+    e.currentTarget.disabled = true; e.currentTarget.textContent = 'Making the report…';
+    const r = await saveReport({ theme: state.settings.reportTheme || 'dark', paper: state.settings.reportPaper || paperFor() });
+    d.close();
+    if (r.ok && r.path) reportSaved(r.path);
+    else if (!r.ok && !r.cancelled) toast(`Couldn't save the report: ${r.error || 'unknown error'}`, 6000);
+  };
+}
+async function saveReport({ theme = 'dark', paper = paperFor() } = {}) {
+  try {
+    const home = state.settings.home;
+    const places = [...session.places.values()].filter((p) => p.scope === 'internet' && p.lat != null)
+      .map((p) => ({ lon: p.lon, lat: p.lat, sent: p.sent, cat: session.topCat(p.cats), label: p.geo?.city ? p.geo.city.split(' (')[0] : countryName(p.geo?.country) }));
+    const [mapImage, fonts] = await Promise.all([snapshotMap(maplibregl, mapStyle('dark'), places, home), fontCss()]);
+    const html = buildReport(session, { platform: wt.platform, version: state.version, theme, paper, fonts, mapImage, home, rules: FEATURES.blocking ? rules() : [] });
+    return await wt.saveReport({ html, name: reportFileName(session.ended || Date.now()), paper });
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+function reportSaved(p) {
+  const d = $('#dlg');
+  d.innerHTML = `<div class="dlg"><div class="dlg-icon">${REPORT_ICON}</div><h3>Report saved</h3><p class="sub" style="word-break:break-all">${esc(p)}</p>
+    <div class="foot"><button class="ghost" id="repShow">Show in folder</button><button class="primary" id="repOpen">Open</button></div></div>`;
+  if (!d.open) d.showModal();
+  d.querySelector('#repOpen').onclick = () => { wt.openReport(p); d.close(); };
+  d.querySelector('#repShow').onclick = () => { wt.showReport(p); d.close(); };
+}
+
 // "Buy me a coffee": optional tips, opened in the person's own browser. Nothing is unlocked or tracked.
 function openSupport() {
   const d = $('#dlg');
@@ -917,7 +1033,7 @@ function deepFailed(info) {
   if (d.open) d.close();
   d.showModal();
   d.querySelector('#keepStd').onclick = () => d.close();
-  d.querySelector('#retryDeep').onclick = async () => { d.close(); await stop(); start(); };
+  d.querySelector('#retryDeep').onclick = async () => { d.close(); await wt.stop(); setRunning(false); start(); }; // a restart, not a Stop: blocks stay
 }
 
 function openLocation() {
@@ -957,6 +1073,7 @@ function openSettings() {
       <div class="seg" id="themeSeg">${['system', 'dark', 'light'].map((t) => `<button data-t="${t}" class="${t === theme ? 'on' : ''}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div></div>
     <div class="opt"><div><b>Your location</b><small>${s.home ? esc(`${s.home.city}, ${countryName(s.home.country)}`) : 'Not set'}</small></div><button class="ghost" id="setLoc">Change</button></div>
     ${['linux', 'win32'].includes(wt.platform) ? `<div class="opt"><div><b>Deep mode</b><small>Shows website names and tracker labels, and catches every connection. Asks for ${wt.platform === 'win32' ? 'administrator permission' : 'your password'} each time you press Start. Only reads where data goes, never what's inside it.</small></div><button class="switch ${s.deep ? 'on' : ''}" id="deepSw" aria-label="Deep mode"></button></div>` : ''}
+    <div class="opt"><div><b>Report</b><small>${session.started ? 'Save a PDF of what this live view found. Made on this ' + DEVICE + ', never uploaded.' : 'After a live view, save a PDF of what it found.'}</small></div><button class="ghost" id="setReport" ${session.started ? '' : 'disabled'}>Save PDF</button></div>
     <div class="opt"><div><b>Support WhoSees</b><small>Free, with every feature. If it's useful, you can buy me a coffee.</small></div><button class="ghost" data-support>Support</button></div>
     <div class="opt"><div><b>Threat alerts</b><small>Warn about dangerous websites, malicious servers and suspicious behaviour</small></div><button class="switch ${s.alerts !== false ? 'on' : ''}" id="alertSw" aria-label="Threat alerts"></button></div>
     <div class="opt"><div><b>Include local network</b><small>Also list traffic to devices in your home (printers, NAS, TV)</small></div><button class="switch ${s.lan ? 'on' : ''}" id="lanSw" aria-label="Include local network"></button></div>
@@ -996,6 +1113,7 @@ function openSettings() {
   };
   d.querySelector('#updNow').onclick = () => { d.close(); checkForUpdates(true); };
   d.querySelector('#setLoc').onclick = () => { d.close(); openLocation(); };
+  d.querySelector('#setReport').onclick = () => { d.close(); openReport(); };
   d.querySelector('#done').onclick = () => d.close();
 }
 

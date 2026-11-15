@@ -80,8 +80,9 @@ check('destinations on the map', js("[...window.__wt.session.places.values()].so
 check('Chrome traffic attributed to Chrome', until("[...window.__wt.session.apps.values()].some(a => /chrome/i.test(a.name))", 10) is True,
       js("[...window.__wt.session.apps.values()].map(a => a.name)"))
 shot('live')
-# v1: no blocking UI; every feature is free
-check('no Blocked tab in v1', js("!document.querySelector('[data-tab=blocked]')") is True)
+check('Blocked tab present', js("!!document.querySelector('[data-tab=blocked]')") is True)
+check('every top-bar button fits on the phone screen', js("[...document.querySelectorAll('.titlebar button')].filter(b => b.offsetParent).every(b => b.getBoundingClientRect().right <= innerWidth + 0.5)") is True,
+      js("[innerWidth, ...[...document.querySelectorAll('.titlebar button')].filter(b => b.offsetParent).map(b => b.id + ':' + Math.round(b.getBoundingClientRect().right))]"))
 check('plain HTTP request seen (page requested)', until("[...window.__wt.session.conns.values()].some(c => c.host === 'example.com' && (c.data||[]).some(d => d.basis === 'seen'))", 10) is True,
       js("[...window.__wt.session.conns.values()].filter(c => c.host === 'example.com').map(c => c.data)"))
 pk = js("(() => { const p = [...window.__wt.session.places.values()].find(p => p.hosts.has('example.com')); return p && p.key; })()")
@@ -89,6 +90,24 @@ js(f"document.querySelector('[data-tab=places]').click(); document.querySelector
 check('no paywall', js("!document.querySelector('.teaser')") is True)
 check('what was sent is shown to everyone', until("(() => { const p = [...window.__wt.session.places.values()].find(p => p.hosts.has('example.com')); if (!p) return false; document.querySelector('[data-tab=places]').click(); document.querySelector('#list .row[data-place=\"' + CSS.escape(p.key) + '\"]')?.click(); return !!document.querySelector('#detail .dataset'); })()", 20) is True,
       js("document.getElementById('detail').textContent.slice(0,200)"))
+# blocking: block the website from its place card; the phone can't reach it; Unblock restores it
+js("document.querySelector('#detail [data-block-kind=host][data-block-value=\"example.com\"]')?.click()")
+check('Block button adds example.com', until("window.wt.getSettings().then(s => (s.rules || []).some(r => r.kind === 'host' && r.value === 'example.com'))", 6) is True,
+      js("document.getElementById('detail').innerText.slice(-300)"))
+time.sleep(1)
+r = adb('shell', HTTP, timeout=30)
+check('blocked website unreachable from the phone', 'HTTP' not in r, r)
+OTHER = HTTP.replace('example.com', 'connectivitycheck.gstatic.com')  # fast and always up (Android's own check server)
+r2 = adb('shell', OTHER, timeout=30)
+if 'HTTP' not in r2: time.sleep(2); r2 = adb('shell', OTHER, timeout=30)  # one retry: this tests WhoSees, not the internet
+check('other sites still work while blocking', 'HTTP' in r2, r2)
+js("document.querySelector('[data-back]')?.click(); document.querySelector('[data-tab=blocked]').click()")
+check('Blocked tab lists it', until("document.getElementById('list').innerText.includes('example.com')", 5) is True, js("document.getElementById('list').innerText.slice(0,200)"))
+js("[...document.querySelectorAll('#list [data-rule]')].find(r => r.innerText.includes('example.com'))?.querySelector('[data-unblock]')?.click()")
+time.sleep(1.5)
+r = adb('shell', HTTP, timeout=30)
+check('Unblock restores the website', 'HTTP' in r, r)
+shot('blocked-tab')
 # stop
 js("document.getElementById('stopBtn').click()")
 time.sleep(2)
@@ -96,6 +115,53 @@ check('Stop ends the VPN', not vpn_up())
 check('UI back to idle', js("document.body.classList.contains('idle')") is True)
 r = adb('shell', HTTP, timeout=30)
 check('internet works normally after Stop', 'HTTP' in r, r)
+# Report (PDF): Android's own print screen makes it ("Save as PDF"); nothing leaves the phone
+def ui_nodes():
+    adb('shell', 'uiautomator', 'dump', '/sdcard/ui.xml'); x = adb('shell', 'cat', '/sdcard/ui.xml')
+    out = []
+    for m in re.finditer(r'<node [^>]*>', x):
+        n = m.group(0); t = re.search(r' text="([^"]*)"', n); d = re.search(r'content-desc="([^"]*)"', n); b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        if b: out.append(((t.group(1) if t else '') + '|' + (d.group(1) if d else ''), tuple(map(int, b.groups()))))
+    return out
+def ui_tap(pat, t=10):
+    end = time.time() + t
+    while time.time() < end:
+        for l, (a, b, c, d) in ui_nodes():
+            if re.search(pat, l): adb('shell', 'input', 'tap', str((a + c) // 2), str((b + d) // 2)); return l
+        time.sleep(1)
+    return None
+def top(): return ' '.join(l for l in adb('shell', 'dumpsys', 'activity', 'activities').splitlines() if 'topResumedActivity' in l)
+check('report offered after a live view', js("!document.getElementById('heroReport').hidden") is True)
+js("document.getElementById('heroReport').click()")
+check('report dialog explains the print screen', until("document.getElementById('dlg').open && document.getElementById('dlg').innerText.includes('Save as PDF')", 5) is True, js("document.getElementById('dlg').innerText"))
+adb('shell', "rm -f '/sdcard/Download/WhoSees report'*.pdf")
+apps = js("[...window.__wt.session.apps.values()].filter(a => [...a.conns].some(id => window.__wt.session.conns.get(id)?.scope === 'internet')).map(a => a.name)")
+js("document.getElementById('repGo').click()")
+for _ in range(20):
+    if 'printspooler' in top(): break
+    time.sleep(1)
+check('report opens Android print screen', 'printspooler' in top(), top())
+time.sleep(2); shot('report-print')
+# Android remembers the last printer: "Save as PDF" may already be chosen
+if not any(l.endswith('|Save to PDF') for l, _ in ui_nodes()):
+    ui_tap(r'^Select a printer\|', 4); time.sleep(1.5)
+    ui_tap(r'^Save as PDF\|', 4); time.sleep(2)
+check('Save as PDF chosen', bool(ui_tap(r'\|Save to PDF$')), [l for l, _ in ui_nodes()][:12]); time.sleep(3)
+check('file picker suggests a dated report name', any(re.match(r'WhoSees report \d{4}-\d\d-\d\d \d{4}', l) for l, _ in ui_nodes()), [l for l, _ in ui_nodes()][:15])
+ui_tap(r'^SAVE\|'); time.sleep(5)
+files = [f for f in adb('shell', 'ls', '/sdcard/Download/').splitlines() if f.startswith('WhoSees report')]
+check('report PDF saved to Downloads', len(files) == 1, files)
+check('back in WhoSees after saving', PKG in top(), top())
+if files:
+    local = os.path.join(OUT, 'android-report.pdf')
+    subprocess.run([*ADB, 'pull', f'/sdcard/Download/{files[0]}', local], capture_output=True)
+    info = subprocess.run(['pdfinfo', local], capture_output=True, text=True).stdout
+    txt = re.sub(r'\s+', ' ', subprocess.run(['pdftotext', local, '-'], capture_output=True, text=True).stdout)
+    check('report PDF has several pages', int((re.search(r'Pages:\s+(\d+)', info) or [0, 0])[1]) >= 3, info[-200:])
+    check('report PDF is about the phone', 'What your phone sent' in txt and 'Android phone' in txt, txt[:200])
+    check('report PDF names the apps that went online', isinstance(apps, list) and apps and all(a[:20] in txt for a in apps), [apps, txt[:300]])
+    check('report PDF says Full (Android VPN) mode', 'Full (Android VPN)' in txt, '')
+    adb('shell', f"rm -f '/sdcard/Download/{files[0]}'")
 # Private DNS (hostname mode) hides website names: explained before Start, reminder after Stop once it's off
 pd_orig = [adb('shell', 'settings', 'get', 'global', k).strip() for k in ('private_dns_mode', 'private_dns_specifier')]
 adb('shell', 'settings', 'put', 'global', 'private_dns_mode', 'hostname'); adb('shell', 'settings', 'put', 'global', 'private_dns_specifier', 'dns.google')

@@ -18,7 +18,7 @@
 <link rel="icon" href="/img/favicon.png">
 <link rel="apple-touch-icon" href="/img/icon.png">
 <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=10">
+<link rel="stylesheet" href="/css/site.css?v=11">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"Privacy policy","item":"https://whosees.app/privacy/"}]}]</script>
 <script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
 </head>
@@ -44,7 +44,9 @@
 <ul>
 <li><b>What it looks at:</b> while a live view is running, the details of your device's network connections: which app made them, the address and port they go to, the website name when it's visible, and how much data was sent. For data sent without encryption, it checks the parts needed to say what kind of data it was (for example a location). It does not read the contents of encrypted traffic.</li>
 <li><b>Where that goes:</b> nowhere. It's shown on your screen and discarded when you press Stop or close WhoSees.</li>
-<li><b>What it saves:</b> only your settings (such as your home city and display preferences), stored on your device.</li>
+<li><b>What it saves:</b> only your settings (such as your home city, display preferences and the blocks you chose to keep), stored on your device.</li>
+<li><b>Reports (PDF):</b> made on your device only when you ask for one, and saved where you choose. WhoSees doesn't upload or share them.</li>
+<li><b>Blocking:</b> done entirely on your device. On a computer WhoSees adds temporary firewall rules while a live view runs and removes them when you press Stop; on Android the VPN simply doesn't pass the blocked connections on.</li>
 <li><b>Lists it uses:</b> the IP-location, tracker and threat lists are built into the app and used offline. WhoSees doesn't look anything up online.</li>
 <li><b>Update checks (off unless you turn them on):</b> the first time you open WhoSees, it asks whether you'd like it to check for updates. If you say yes, once a day when you open it, WhoSees downloads one small public file, <a href="/version.json">whosees.app/version.json</a>, that lists the newest version. Like visiting any website, that request reveals your internet address. Nothing else is sent: no ID, no list of your apps, nothing about what WhoSees shows you. Our server doesn't keep a log of these requests. You can turn this off any time in Settings.</li>
 <li><b>Links:</b> the website, source code and "buy me a coffee" links open in your browser only when you click them.</li>
@@ -57,7 +59,7 @@
 <tr><td>Internet</td><td>To pass your apps' traffic on to where it was going, and, only if you turned it on, to check for updates.</td></tr>
 <tr><td>Network state</td><td>To know whether you're on Wi-Fi or mobile data, so apps behave the same as without WhoSees.</td></tr></table>
 <h3>Windows and Linux</h3>
-<p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
+<p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes and, if you block something, add temporary firewall rules. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
 <h2>The whosees.app website</h2>
 <ul>
 <li><b>Visit counting:</b> we use <a href="https://umami.is">Umami</a>, an open-source analytics tool running on our own server. It doesn't use cookies and doesn't store your IP address. It records the page you viewed, the site that linked you here, your browser, operating system, device type and approximate country, plus clicks on the download and "buy me a coffee" buttons. We use this only to see how many people visit and download WhoSees.</li>

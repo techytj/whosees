@@ -73,6 +73,8 @@ r = ps('block.ps1')
 res = {l.split(' ', 1)[1].rsplit(' ', 1)[0]: l.rsplit(' ', 1)[1] for l in r.splitlines() if l.startswith('RESULT ') and (l.endswith(' WORKS') or l.endswith(' BLOCKED'))}
 check('block: website blocked', res.get('powershell->wikipedia (host blocked)') == 'BLOCKED', res)
 check('block: app blocked', res.get('curl->github (app blocked)') == 'BLOCKED', res)
+check('block: the very first request to a new tracker is refused', res.get('powershell->sentry.io first request (all trackers and ads blocked)') == 'BLOCKED', res)
+check('block: "all trackers and ads" blocks an analytics site', res.get('powershell->sentry.io analytics (all trackers and ads blocked)') == 'BLOCKED', res)
 check('block: other traffic unaffected', res.get('powershell->github (allowed)') == 'WORKS', res)
 check('block: rules present while running', 'during-run WhoSees rules: 0' not in r, r[-300:])
 check('block: no rules left after stop', 'after-stop WhoSees rules: 0' in r, r[-300:])

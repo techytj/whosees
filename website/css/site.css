@@ -135,6 +135,7 @@ figcaption { display: flex; justify-content: space-between; gap: 12px; padding-t
 .spec p { color: var(--fg-2); margin: 14px 0 0; max-width: 46ch; }
 .spec .eg { margin-top: 18px; color: var(--fg); display: flex; flex-wrap: wrap; gap: 8px; }
 .spec .eg span { border: 1px solid var(--line-2); padding: 4px 9px 3px; }
+.then { margin: 76px 0 -28px; font-size: clamp(24px, 2.4vw, 32px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; line-height: 1.05; }
 .tag { font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--sig-ink); background: var(--sig); padding: 4px 8px 3px; }
 .warn { margin-top: 28px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; border: 1px solid var(--sig); max-width: 860px; }
 .warn .l { background: var(--sig); color: var(--sig-ink); padding: 18px 18px; font: 500 12px var(--mono); letter-spacing: .08em; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }

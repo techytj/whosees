@@ -42,6 +42,9 @@
         <button data-mode="simple" class="on">Simple</button>
         <button data-mode="expert">Expert</button>
       </div>
+      <button class="icon-btn" id="reportBtn" title="Save a report (PDF)" aria-label="Save a report" hidden>
+        <svg viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8l-5-5Z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7M8.5 9.5h2.5"/></svg>
+      </button>
       <button class="icon-btn coffee" id="coffeeBtn" data-support title="Like WhoSees? Buy me a coffee" aria-label="Buy me a coffee">
         <svg viewBox="0 0 24 24"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3"/></svg>
       </button>
@@ -66,6 +69,7 @@
       <p>WhoSees shows you what this computer sends out to the internet, which app sent it, who receives it, and where in the world it lands. Nothing leaves your computer, and it stops the moment you press Stop.</p>
       <button class="deep-chip" id="deepChip" hidden><i class="switch"></i><span></span></button>
       <button class="primary big" id="startBtn"><span class="pulse-ring"></span>Start live view</button>
+      <button class="ghost report-cta" id="heroReport" hidden><svg viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8l-5-5Z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7M8.5 9.5h2.5"/></svg>Save a report of this live view (PDF)</button>
       <p class="fine" id="homeLine">Your location: <button class="link" id="homeBtn">set location</button></p>
     </div>
   </section>

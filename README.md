@@ -33,7 +33,7 @@ WhoSees reads where traffic goes, never what's inside encrypted traffic.
 | **Windows** | Standard mode reads Windows' connection tables. Deep mode (asks for administrator approval) uses Windows' built-in network events (ETW). |
 | **Android** | A local-only VPN: the phone hands every connection to WhoSees, which sends it straight on to where it was going. Nothing goes to a VPN server. |
 
-Blocking connections is built but switched off for this first version.
+WhoSees can also block, while a live view runs: a whole app (Windows, Android), a company, a website, a country, or every tracker and advertiser at once. On a computer blocking needs Deep mode; the firewall rules are removed when you press Stop. You can save a PDF report of everything a live view found.
 
 ## Build from source
 

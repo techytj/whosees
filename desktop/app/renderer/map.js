@@ -29,6 +29,8 @@ const FLAVORS = {
   },
 };
 
+export { maplibregl };
+export const mapStyle = (theme) => style(theme);
 function style(theme) {
   const ls = layers('protomaps', FLAVORS[theme], { lang: 'en' })
     .filter((l) => !(l.layout && l.layout['icon-image'])) // no sprite sheet bundled

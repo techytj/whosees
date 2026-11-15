@@ -62,6 +62,11 @@ pub fn service(proto: Proto, port: u16) -> (&'static str, &'static str, bool) {
 }
 
 /// Category from the network owner's name. Hostname-based categories come with Deep mode.
+/// A "category" block rule: one category, or "tracking" = every tracking, advertising and analytics company.
+pub fn category_matches(rule: &str, category: &str) -> bool {
+    rule == category || (rule == "tracking" && matches!(category, "tracker" | "ads" | "analytics"))
+}
+
 pub fn category_for_org(org: &str) -> &'static str {
     let o = org.to_lowercase();
     const RULES: &[(&str, &[&str])] = &[
@@ -98,4 +103,14 @@ pub fn owner_short(org: &str) -> String {
         if let Some(x) = s.strip_suffix(suf) { s = x.trim_end_matches(',').trim().to_string(); }
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tracking_rule_covers_trackers_ads_and_analytics() {
+        for c in ["tracker", "ads", "analytics"] { assert!(super::category_matches("tracking", c)); }
+        for c in ["cdn", "cloud", "social", "other"] { assert!(!super::category_matches("tracking", c)); }
+        assert!(super::category_matches("social", "social"));
+    }
 }

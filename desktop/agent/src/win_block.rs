@@ -18,8 +18,10 @@ pub struct Rule { pub kind: String, pub value: String }
 
 pub struct Blocker {
     pub available: bool,
+    pub warning: Option<String>, // never set on Windows; Linux uses it when a rule can't be enforced
     rules: Vec<Rule>,
     blocked: BTreeSet<IpAddr>,
+    cat_ips: BTreeSet<IpAddr>,  // blocked only because of a "kind of company" rule
     country_ranges: Vec<(IpAddr, IpAddr)>,
     names: Vec<String>, // firewall rules we created
     next: usize,
@@ -41,7 +43,7 @@ fn remove_leftovers() {
 
 impl Blocker {
     pub fn new(enabled: bool) -> Blocker {
-        let b = Blocker { available: enabled, rules: vec![], blocked: BTreeSet::new(), country_ranges: vec![], names: vec![], next: 0 };
+        let b = Blocker { available: enabled, warning: None, rules: vec![], blocked: BTreeSet::new(), cat_ips: BTreeSet::new(), country_ranges: vec![], names: vec![], next: 0 };
         if enabled { remove_leftovers(); }
         b
     }
@@ -50,6 +52,7 @@ impl Blocker {
         if !self.available { return Err("Blocking needs Deep mode (administrator permission)".into()); }
         self.rules = rules;
         self.blocked.clear();
+        self.cat_ips.clear();
         self.country_ranges.clear();
         for r in &self.rules {
             match r.kind.as_str() {
@@ -63,7 +66,8 @@ impl Blocker {
 
     pub fn has_rules(&self) -> bool { !self.rules.is_empty() }
 
-    pub fn matches(&self, host: Option<&str>, company: Option<&str>) -> bool {
+    /// A website or company rule: blocks every address that name uses.
+    pub fn matches_name(&self, host: Option<&str>, company: Option<&str>) -> bool {
         self.rules.iter().any(|r| match r.kind.as_str() {
             "host" => host.is_some_and(|h| h == r.value || h.ends_with(&format!(".{}", r.value))),
             "company" => company.is_some_and(|c| c.eq_ignore_ascii_case(&r.value)),
@@ -71,8 +75,31 @@ impl Blocker {
         })
     }
 
+    /// A "kind of company" rule (e.g. every tracker), judged by a website name's category, never by a guess
+    /// from the address owner. The caller also checks the address isn't shared with ordinary websites.
+    pub fn matches_category(&self, category: Option<&str>) -> bool {
+        self.rules.iter().any(|r| match r.kind.as_str() {
+            "category" => category.is_some_and(|c| crate::classify::category_matches(&r.value, c)),
+            _ => false,
+        })
+    }
+
     pub fn blocks_app(&self, exe: Option<&str>) -> bool {
         exe.is_some_and(|e| self.rules.iter().any(|r| r.kind == "app" && r.value.eq_ignore_ascii_case(e)))
+    }
+
+    /// Block addresses for a "kind of company" rule. Remembered separately: if an ordinary website later turns up on
+    /// one of them (a shared CDN or cloud address), `release` unblocks it again.
+    pub fn add_category(&mut self, ips: &[IpAddr]) -> bool {
+        for ip in ips { if !self.blocked.contains(ip) { self.cat_ips.insert(*ip); } }
+        self.add(ips)
+    }
+    pub fn release(&mut self, ips: &[IpAddr]) -> bool {
+        let gone: Vec<IpAddr> = ips.iter().copied().filter(|ip| self.cat_ips.remove(ip)).collect();
+        if gone.is_empty() { return false; }
+        for ip in &gone { self.blocked.remove(ip); }
+        let _ = self.sync();
+        true
     }
 
     pub fn is_blocked(&self, ip: &IpAddr) -> bool {

@@ -43,7 +43,7 @@ results += driver.run(out, 'wide', [
       CHECK('feed-rows', document.querySelectorAll('#list .row').length > 0, '');
       document.querySelector('[data-tab=places]').click();
       CHECK('places-rows', document.querySelectorAll('#list .row[data-place]').length > 0, '');
-      CHECK('no-blocked-tab-in-v1', !document.querySelector('[data-tab=blocked]'), '');
+      CHECK('blocked-tab-present', !!document.querySelector('[data-tab=blocked]'), '');
       document.querySelector('[data-mode=expert]').click();
       document.querySelector('[data-tab=feed]').click();
       CHECK('expert-shows-addresses', !!document.querySelector('#list .mono'), '');
@@ -51,19 +51,78 @@ results += driver.run(out, 'wide', [
       var row = document.querySelector('[data-tab=places]'); row.click();
       var pr = document.querySelector('#list .row[data-place]'); if (pr) pr.click();
       CHECK('place-detail-opens', !$('#detail').hidden && $('#detail').textContent.includes('Sent'), $('#detail').textContent.slice(0, 80));
-      CHECK('no-block-buttons-in-v1', !document.querySelector('[data-block-kind]') && !document.querySelector('.blockbox'), '');
+      CHECK('place-offers-block-buttons', !!document.querySelector('#detail [data-block-kind=company]') || !!document.querySelector('#detail [data-block-kind=country]'), $('#detail').textContent.slice(-200));
       CHECK('no-paywall-anywhere', !document.querySelector('.teaser') && !document.body.innerHTML.includes('Unlock'), '');
+      // Standard mode: blocking asks for Deep mode first
+      var bb = document.querySelector('#detail [data-block-kind=country]') || document.querySelector('#detail [data-block-kind]');
+      window.__blockLabel = bb && bb.dataset.blockLabel;
+      if (bb) bb.click();
+    """),
+    ('askdeep', 13300, """
+      CHECK('standard-mode-block-asks-for-deep', $('#dlg').open && $('#dlg').innerText.includes('Blocking needs Deep mode') && !!$('#deepOn'), $('#dlg').innerText.slice(0, 160));
+      $('#deepLater').click();
+    """),
+    ('notnow', 13900, """
+      CHECK('not-now-closes-the-dialog', !$('#dlg').open, '');
+      window.wt.getSettings().then((s) => CHECK('not-now-adds-no-block', !(s.rules || []).some((r) => r.label === window.__blockLabel), s.rules));
+      CHECK('not-now-says-not-blocked', $('#toast').textContent.startsWith('Not blocked'), $('#toast').textContent);
       document.querySelector('[data-back]')?.click();
       CHECK('back-returns-to-list', $('#detail').hidden, '');
+      document.querySelector('[data-tab=blocked]').click();
+      CHECK('blocked-tab-lists-kept-block', $('#list').innerText.includes('example.org') && $('#list').innerText.includes('kept'), $('#list').innerText.slice(0, 300));
+      CHECK('blocked-tab-says-deep-mode-needed', $('#list').innerText.includes('Deep mode'), $('#list').innerText.slice(0, 200));
+      CHECK('blocked-tab-offers-all-trackers', !!$('#blockTracking'), '');
+      $('#blockTracking').click();
     """),
-    ('stop', 14000, """
+    ('alltrackers', 14700, """
+      CHECK('all-trackers-asks-for-deep-too', $('#dlg').open && $('#dlg').innerText.includes('All trackers and ads'), $('#dlg').innerText.slice(0, 160));
+      $('#deepLater').click();
+    """),
+    ('standardrule', 15200, """
+      // a block that matches a place, in Standard mode: nothing may claim it was blocked
+      CHECK('all-trackers-switch-stays-off-without-deep', !$('#blockTracking').classList.contains('on'), '');
+      (async () => {
+        var p = [...W.session.places.values()].find((x) => x.scope === 'internet' && x.geo && x.geo.country);
+        if (!p) { CHECK('standard-mode-never-claims-blocked', true, 'no internet place; skipped'); return; }
+        var s = await window.wt.getSettings();
+        await window.wt.setSettings({ rules: [...(s.rules || []), { kind: 'country', value: p.geo.country, label: 'Test country', keep: false }] }); await W.reloadSettings();
+        CHECK('standard-mode-map-not-marked-blocked', !W.flows.isBlocked(p), '');
+        document.querySelector('[data-tab=places]').click();
+        var row = document.querySelector('#list .row[data-place="' + CSS.escape(p.key) + '"]');
+        CHECK('standard-mode-place-row-no-blocked-chip', !!row && !row.innerText.includes('Blocked'), row && row.innerText);
+        row && row.click(); await new Promise((r) => setTimeout(r, 200));
+        CHECK('standard-mode-detail-says-not-blocked', $('#detail').innerText.includes('Not blocked in this live view') && !$('#detail').innerText.includes('WhoSees blocked it'), $('#detail').innerText.slice(-400));
+        document.querySelector('[data-back]')?.click();
+        // a threat alert's Block now, then Not now: the card must not say Blocked and nothing stays on the list
+        W.session.ingest([{ t: 'alert', conn: null, host: 'bad.example', remote: '203.0.113.7', alert: { severity: 'high', kind: 'malicious-lookup', title: 'Something looked up a dangerous website: bad.example', detail: 'test', block: { kind: 'host', value: 'bad.example', label: 'bad.example' } } }]);
+        await new Promise((r) => setTimeout(r, 300));
+        var card = [...document.querySelectorAll('#alertStack .alert-card')].find((c) => c.innerText.includes('bad.example'));
+        card && card.querySelector('[data-alert-block]').click(); await new Promise((r) => setTimeout(r, 400));
+        CHECK('standard-mode-alert-block-asks-for-deep', $('#dlg').open && !!$('#deepLater'), $('#dlg').innerText.slice(0, 120));
+        $('#deepLater').click(); await new Promise((r) => setTimeout(r, 400));
+        card = [...document.querySelectorAll('#alertStack .alert-card')].find((c) => c.innerText.includes('bad.example'));
+        CHECK('standard-mode-alert-card-not-marked-blocked', !!card && !card.innerText.includes('Blocked') && !!card.querySelector('[data-alert-block]'), card && card.innerText);
+        var s2 = await window.wt.getSettings();
+        CHECK('standard-mode-alert-not-now-leaves-no-rule', !(s2.rules || []).some((r) => r.value === 'bad.example'), s2.rules);
+        card && card.querySelector('[data-alert-dismiss]').click();
+        document.querySelector('[data-tab=blocked]').click();
+      })()
+    """),
+    ('keep', 16400, """
+      var k = [...document.querySelectorAll('#list [data-rule]')].find((r) => r.innerText.includes('example.org'));
+      k && k.querySelector('[data-keep]').click();
+    """),
+    ('unkept', 17000, """
+      var row = [...document.querySelectorAll('#list [data-rule]')].find((r) => r.innerText.includes('example.org'));
+      CHECK('keep-toggles-off', !!row && row.innerText.includes('until Stop') && !row.querySelector('.keep.on'), row && row.innerText);
       $('#stopBtn').click();
     """),
-    ('stopped', 15500, """
+    ('stopped', 18600, """
       CHECK('idle-after-stop', document.body.classList.contains('idle'), '');
       CHECK('status-not-live', !$('#status').classList.contains('live'), '');
+      window.wt.getSettings().then((s) => CHECK('stop-ends-blocks-not-kept', !(s.rules || []).length, s.rules));
     """),
-], {'theme': 'dark', 'home': HOME})
+], {'theme': 'dark', 'home': HOME, 'rules': [{'kind': 'host', 'value': 'example.org', 'label': 'example.org', 'keep': True}]})
 leftover = agents() - before
 results.append(('wide: no-agent-left-after-stop', not leftover, leftover))
 results.append(('wide: no-page-errors', not driver.page_errors(out, 'wide'), driver.page_errors(out, 'wide')))
@@ -147,6 +206,12 @@ results += driver.run(out, 'narrow', [
       CHECK('bottom-sheet-layout', $('#panel').getBoundingClientRect().width >= innerWidth - 2, $('#panel').getBoundingClientRect().width);
       CHECK('stats-single-row', $('#stats').getBoundingClientRect().height < 80, $('#stats').getBoundingClientRect().height);
       CHECK('no-horizontal-page-scroll', document.documentElement.scrollWidth <= innerWidth, document.documentElement.scrollWidth);
+      var tb = [...document.querySelectorAll('.titlebar .brand, .titlebar .status, .titlebar .actions > *')].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect());
+      CHECK('title-bar-fits-beside-window-buttons', tb.every((r) => r.right <= innerWidth - 136), [innerWidth, tb.map((r) => Math.round(r.right))]);
+      CHECK('title-bar-items-do-not-overlap', tb.every((r, i) => i === 0 || r.left >= tb[i - 1].right - 0.5), tb.map((r) => [Math.round(r.left), Math.round(r.right)]));
+      $('#settingsBtn').click();
+      CHECK('report-in-settings-on-narrow-screens', !!$('#setReport') && !$('#setReport').disabled, $('#dlg').innerText.slice(0, 120));
+      $('#done').click();
       var d = dots().find((x) => x.g.b.x > 10 && x.g.b.x < innerWidth - 10 && x.g.b.y > 110 && x.g.b.y < innerHeight * 0.5
         && document.elementFromPoint(x.g.b.x, x.g.b.y)?.tagName === 'CANVAS');  // not under a card (e.g. a real alert)
       if (d) {
@@ -179,6 +244,10 @@ results += driver.run(out, 'deeppw', [
     """),
 ], {'theme': 'dark', 'home': HOME, 'deep': True}, env={'PATH': fake + ':' + os.environ['PATH']})
 results.append(('deeppw: no-page-errors', not driver.page_errors(out, 'deeppw'), driver.page_errors(out, 'deeppw')))
+
+# ---------- D. Report (PDF) ----------
+import report
+results += report.run(out)
 
 fails = 0
 for name, ok, detail in results:

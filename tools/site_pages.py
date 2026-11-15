@@ -7,7 +7,7 @@ import datetime, html, json, os
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'website')
 SITE = 'https://whosees.app'
 REL = 'https://github.com/techytj/whosees/releases/latest/download/'
-CSS_V = 10
+CSS_V = 11
 TODAY = datetime.date.today().isoformat()
 UMAMI = '<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>'
 
@@ -105,7 +105,7 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 
 def app_ld(os_name, file):
     return {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": f"WhoSees for {os_name}",
-            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.1.2",
+            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.2.0",
             "downloadUrl": REL + file, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
             "license": "https://www.gnu.org/licenses/gpl-3.0.html", "url": SITE + '/',
             "author": {"@type": "Person", "name": "TechyTJ", "url": "https://github.com/techytj"}}
@@ -243,7 +243,7 @@ pages.append(page('android/', 'WhoSees for Android: see which apps are tracking 
 # ---------------------------------------------------------------- Windows
 win_faq = [
     ("Why does Windows say 'Windows protected your PC'?", "Windows shows this for new programs that aren't code-signed yet. It doesn't mean anything is wrong with WhoSees. Click More info, then Run anyway. WhoSees has applied for free code signing from the SignPath Foundation."),
-    ("Is WhoSees a firewall?", "Not in this version. WhoSees shows which apps connect where; blocking is built but switched off for now."),
+    ("Can WhoSees block apps or trackers?", "Yes, while a live view runs: tap Block on an app, a company, a website or a country, or switch on Block all trackers and ads. Blocks end when you press Stop unless you choose Keep. On Android nothing else is needed."),
     ("Does WhoSees read my traffic?", "It reads where your data goes, never what's inside it. Almost all traffic is encrypted, and WhoSees doesn't open it."),
 ]
 pages.append(page('windows/', 'WhoSees for Windows: see which apps send your data and where',
@@ -386,7 +386,9 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
 <ul>
 <li><b>What it looks at:</b> while a live view is running, the details of your device's network connections: which app made them, the address and port they go to, the website name when it's visible, and how much data was sent. For data sent without encryption, it checks the parts needed to say what kind of data it was (for example a location). It does not read the contents of encrypted traffic.</li>
 <li><b>Where that goes:</b> nowhere. It's shown on your screen and discarded when you press Stop or close WhoSees.</li>
-<li><b>What it saves:</b> only your settings (such as your home city and display preferences), stored on your device.</li>
+<li><b>What it saves:</b> only your settings (such as your home city, display preferences and the blocks you chose to keep), stored on your device.</li>
+<li><b>Reports (PDF):</b> made on your device only when you ask for one, and saved where you choose. WhoSees doesn't upload or share them.</li>
+<li><b>Blocking:</b> done entirely on your device. On a computer WhoSees adds temporary firewall rules while a live view runs and removes them when you press Stop; on Android the VPN simply doesn't pass the blocked connections on.</li>
 <li><b>Lists it uses:</b> the IP-location, tracker and threat lists are built into the app and used offline. WhoSees doesn't look anything up online.</li>
 <li><b>Update checks (off unless you turn them on):</b> the first time you open WhoSees, it asks whether you'd like it to check for updates. If you say yes, once a day when you open it, WhoSees downloads one small public file, <a href="/version.json">whosees.app/version.json</a>, that lists the newest version. Like visiting any website, that request reveals your internet address. Nothing else is sent: no ID, no list of your apps, nothing about what WhoSees shows you. Our server doesn't keep a log of these requests. You can turn this off any time in Settings.</li>
 <li><b>Links:</b> the website, source code and "buy me a coffee" links open in your browser only when you click them.</li>
@@ -399,7 +401,7 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
 <tr><td>Internet</td><td>To pass your apps' traffic on to where it was going, and, only if you turned it on, to check for updates.</td></tr>
 <tr><td>Network state</td><td>To know whether you're on Wi-Fi or mobile data, so apps behave the same as without WhoSees.</td></tr></table>
 <h3>Windows and Linux</h3>
-<p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
+<p>Deep mode asks your system for administrator permission so WhoSees can read where network traffic goes and, if you block something, add temporary firewall rules. Your password goes to your system's own security prompt; WhoSees never sees or stores it.</p>
 <h2>The whosees.app website</h2>
 <ul>
 <li><b>Visit counting:</b> we use <a href="https://umami.is">Umami</a>, an open-source analytics tool running on our own server. It doesn't use cookies and doesn't store your IP address. It records the page you viewed, the site that linked you here, your browser, operating system, device type and approximate country, plus clicks on the download and "buy me a coffee" buttons. We use this only to see how many people visit and download WhoSees.</li>
@@ -419,7 +421,7 @@ pages.append(page('privacy/', 'Privacy policy: WhoSees',
 TOC = [('start', 'Getting started'), ('live', 'Start a live view'), ('map', 'Read the live map'), ('apps', 'See which apps send the most'),
        ('app', 'Find out what an app sends'), ('place', 'Check a place on the map'), ('companies', 'See every company and country'),
        ('feed', 'Watch connections as they happen'), ('search', 'Search'), ('expert', 'Technical details (Expert)'),
-       ('alerts', 'When WhoSees warns you'), ('privatedns', 'Missing website names (Android)'), ('settings', 'Settings'),
+       ('alerts', 'When WhoSees warns you'), ('block', 'Block apps, companies and trackers'), ('report', 'Save a report (PDF)'), ('privatedns', 'Missing website names (Android)'), ('settings', 'Settings'),
        ('stop', 'Stop WhoSees'), ('support', 'Support WhoSees'), ('trouble', 'Troubleshooting')]
 toc_html = ''.join(f'<a href="#{i}">{html.escape(t)}</a>' for i, t in TOC)
 guide_side = f'<aside class="side toc"><h4>IN THIS GUIDE</h4>{toc_html}<a class="btn" href="/#get">Download WhoSees <span class="k">↓</span></a></aside>'
@@ -502,12 +504,39 @@ guide_body = f"""
 <h2 id="alerts">When WhoSees warns you</h2>
 <p>If an app connects to a known scam or malware website, or does something suspicious, a warning appears at once. On a phone you also get a notification.</p>
 <ol><li>Read the warning: it says which app, where it connected and why that matters.</li>
-<li>Press <b>Details</b> to see that app or place, or <b>Got it</b> if you recognise it and it's fine.</li>
+<li>Press <b>Block now</b> to stop it straight away (WhoSees keeps blocking a dangerous site in future live views), <b>Details</b> to see that app or place, or <b>Trust</b> if you recognise it and it's fine.</li>
 <li>If you don't recognise the app, remove it. On a computer, if it runs from your Downloads or a temporary folder, close it and delete the file.</li>
 <li>All warnings are kept in the <b>Alerts</b> tab until you stop.</li></ol>
-{fig('d-alertcard', 'A warning on a computer', {'1': 'The warning.', '2': '<b>Got it</b> marks it as seen.', '3': 'The alert badge: click to see all warnings.'})}
-{phones(fig('p-alert', 'A warning on a phone', {'1': 'The warning.', '2': '<b>Got it</b>'}, True))}
+{fig('d-alertcard', 'A warning on a computer', {'1': 'The warning.', '2': '<b>Block now</b> stops it.', '3': 'The alert badge: click to see all warnings.'})}
+{phones(fig('p-alert', 'A warning on a phone', {'1': 'The warning.', '2': '<b>Block now</b>'}, True))}
 {fig('d-alerts', 'The Alerts tab', {'1': '<b>Alerts</b> tab', '2': 'Every warning from this session.'})}
+
+<h2 id="block">Block apps, companies and trackers</h2>
+<p>WhoSees can stop an app talking to a company, a website or a whole country, or stop every tracker and advertiser at once. Blocking works only while a live view runs, and WhoSees never blocks anything you didn't choose.</p>
+<ol><li><b>A company, website or country:</b> click it on the map (or in <b>Places</b>) and scroll to <b>Block</b>. Pick what to block.</li>
+<li><b>Every tracker and advertiser:</b> open the <b>Blocked</b> tab and switch on <b>Block all trackers and ads</b>.</li>
+<li><b>A whole app</b> (Windows and Android): open the app in <b>Apps</b> and choose <b>Block … from the internet</b>.</li>
+<li>Blocked places show a red ring on the map, with the number of attempts WhoSees stopped.</li></ol>
+<p><b>Block all trackers and ads</b> goes by website names, never by guesses. Some trackers share a server address with ordinary websites (big content networks do this); WhoSees leaves such an address open, so the ordinary website keeps working.</p>
+{fig('d-block', 'Block from a place on the map', {'1': 'Block the <b>company</b>.', '2': 'Or <b>every tracker and advertiser</b> at once.', '3': 'Or a whole <b>country</b>.'})}
+{phones(fig('p-blocked', 'The Blocked tab on a phone', {'1': '<b>Block all trackers and ads</b>', '2': '<b>Keep</b>'}, True))}
+<p><b>Blocks end when you press Stop</b>, so nothing stays blocked by surprise. To keep blocking something in future live views, press <b>Keep</b> next to it in the <b>Blocked</b> tab. <b>Unblock</b> removes it at once.</p>
+{fig('d-blocked', 'The Blocked tab', {'1': '<b>Block all trackers and ads</b>', '2': '<b>Keep</b>: keep blocking it next time.', '3': '<b>Unblock</b>'})}
+<table><tr><th>ON</th><th>WHAT BLOCKING NEEDS</th></tr>
+<tr><td>Android</td><td>Nothing extra: blocking works in every live view.</td></tr>
+<tr><td>Windows</td><td>Deep mode. WhoSees adds temporary Windows Firewall rules and removes them when you press Stop.</td></tr>
+<tr><td>Linux</td><td>Deep mode. WhoSees adds a temporary firewall table (nftables, or iptables if nftables isn't installed) and removes it when you press Stop. Linux can't block a single app, only where apps connect to. Blocking a whole country needs nftables.</td></tr></table>
+<p>If you press Block while Deep mode is off, WhoSees offers to turn it on for you.</p>
+
+<h2 id="report">Save a report (PDF)</h2>
+<p>A report is a PDF of everything a live view found, to keep, print or share: a map, the key findings in plain English, every app with its privacy grade, every company, country and tracker, any threats and blocks, and a list of every connection.</p>
+<ol><li>During a live view, click the <b>report</b> button at the top (on a phone: <b>Settings → Report</b>). After you press Stop, you can also use <b>Save a report of this live view</b>.</li>
+<li>Pick a <b>style</b> (Dark, or Light to save ink when printing) and a <b>paper size</b> (Letter or A4), then <b>Save PDF</b>.</li>
+<li>On a computer, choose where to save it. On Android, the phone's print screen opens: choose <b>Save as PDF</b> at the top, then tap the round PDF button.</li></ol>
+{fig('d-report', 'Save a report', {'1': 'The <b>report</b> button', '2': '<b>Style</b>', '3': '<b>Paper size</b>', '4': '<b>Save PDF</b>'})}
+{phones(fig('p-reportprint', 'On Android: the phone\'s print screen', {'1': 'Choose <b>Save as PDF</b> here, then tap the round PDF button.'}, True))}
+<p>The report is made on your device and isn't uploaded anywhere. It covers the live view you just ran: starting a new one starts a new report.</p>
+{fig('d-reportpdf', 'The first two pages of a report: the summary with a map, and the key findings.', {})}
 
 <h2 id="privatedns">Missing website names on Android (Private DNS)</h2>
 <p>If your phone uses <b>Private DNS</b> with a named provider, website names are encrypted before WhoSees can see them. WhoSees tells you when you press Start:</p>
@@ -525,12 +554,13 @@ guide_body = f"""
 <tr><td>Deep mode</td><td>(Computers) Website names and every connection; asks for permission each time you press Start.</td></tr>
 <tr><td>Threat alerts</td><td>Warn about dangerous websites, malware servers and suspicious behaviour. On by default.</td></tr>
 <tr><td>Include local network</td><td>Also list devices in your home, like printers and TVs.</td></tr>
+<tr><td>Report</td><td>Save a PDF of what the current or last live view found.</td></tr>
 <tr><td>Check for updates</td><td>Off unless you turn it on. When on, once a day when you open WhoSees it asks whosees.app for the newest version number and tells you if there's a newer one. <b>Check now</b> checks straight away.</td></tr>
 <tr><td>About</td><td>Version, data credits and <b>Open-source licences</b>.</td></tr></table>
 {fig('d-settings', 'Settings', {'1': 'The <b>gear</b> opens Settings.'})}
 
 <h2 id="stop">Stop WhoSees</h2>
-<p>Press <b>Stop</b> at the bottom of the map. WhoSees stops completely: nothing keeps running in the background. Closing the app does the same. On Android the VPN key icon disappears.</p>
+<p>Press <b>Stop</b> at the bottom of the map. WhoSees stops completely: nothing keeps running in the background, and any blocks end (except the ones you chose to <b>Keep</b>, which return in your next live view). Closing the app does the same. On Android the VPN key icon disappears.</p>
 
 <h2 id="support">Support WhoSees</h2>
 <p>Every feature is free. If WhoSees is useful to you, open <b>Settings → Support WhoSees</b> (or the <a href="/#support">coffee section</a> on this website) and pick $5, $10 or $15. It opens PayPal in your browser; WhoSees never sees your payment details, and tipping doesn't change anything in the app.</p>
