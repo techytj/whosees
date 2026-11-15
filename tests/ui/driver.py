@@ -2,7 +2,7 @@
 
 Steps run in the page; each can console.log('CHECK <name> PASS|FAIL <detail>').
 Uses the dev-only WT_SHOT hook in main.js (screenshots are saved next to the results)."""
-import json, os, subprocess, tempfile, time, urllib.parse
+import json, os, shutil, subprocess, tempfile, time, urllib.parse
 
 ROOT = os.environ.get('WT_ROOT') or os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 APP = os.path.join(ROOT, 'desktop/app')
@@ -21,10 +21,20 @@ var visibleDot = () => dots().find((x) => x.g.b.x > 20 && x.g.b.x < innerWidth -
 def ensure_display(name, w, h):
     sock = os.path.join(RUNTIME, name)
     if not os.path.exists(sock):
-        # Private D-Bus session + empty config/data dirs: a test KWin on the real session bus
-        # registers the desktop's global shortcuts and switches them all off when it exits.
+        # Private D-Bus session: a test KWin on the real session bus registers the desktop's
+        # global shortcuts and switches them all off when it exits. It gets a *copy* of the
+        # desktop's KWin settings and scripts (the UI checks depend on them) so it can't write
+        # back to the real ones.
         home = tempfile.mkdtemp(prefix=f'{name}-kwin-')
-        kenv = dict(os.environ, XDG_CONFIG_HOME=os.path.join(home, 'config'), XDG_DATA_HOME=os.path.join(home, 'data'))
+        cfg, data = os.path.join(home, 'config'), os.path.join(home, 'data')
+        os.makedirs(cfg); os.makedirs(os.path.join(data, 'kwin'))
+        src_cfg = os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+        src_data = os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share'))
+        for f in ('kwinrc', 'kdeglobals', 'kwinrulesrc', 'breezerc', 'kcminputrc'):
+            if os.path.exists(os.path.join(src_cfg, f)): shutil.copy(os.path.join(src_cfg, f), cfg)
+        if os.path.isdir(os.path.join(src_data, 'kwin', 'scripts')):
+            shutil.copytree(os.path.join(src_data, 'kwin', 'scripts'), os.path.join(data, 'kwin', 'scripts'))
+        kenv = dict(os.environ, XDG_CONFIG_HOME=cfg, XDG_DATA_HOME=data)
         kenv.pop('DBUS_SESSION_BUS_ADDRESS', None)
         subprocess.Popen(['dbus-run-session', '--', 'kwin_wayland', '--virtual', '--no-lockscreen', '--socket', name,
                           '--width', str(w), '--height', str(h)],
