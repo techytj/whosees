@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WhoSees for Linux: see which programs send your data and where</title>
+<meta name="description" content="Free, open-source network monitor for Linux that shows which program sends data to which company and where, live on a map. AppImage for any distribution, plus a Fedora package.">
+<link rel="canonical" href="https://whosees.app/linux/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WhoSees">
+<meta property="og:url" content="https://whosees.app/linux/">
+<meta property="og:title" content="WhoSees for Linux: see which programs send your data and where">
+<meta property="og:description" content="Free, open-source network monitor for Linux that shows which program sends data to which company and where, live on a map. AppImage for any distribution, plus a Fedora package.">
+<meta property="og:image" content="https://whosees.app/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0b0d">
+<link rel="icon" href="/img/favicon.png">
+<link rel="apple-touch-icon" href="/img/icon.png">
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css?v=4">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"WhoSees for Linux","item":"https://whosees.app/linux/"}]},{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees for Linux","applicationCategory":"SecurityApplication","operatingSystem":"Linux","softwareVersion":"0.1.0","downloadUrl":"https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://www.gnu.org/licenses/gpl-3.0.html","url":"https://whosees.app/","author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which Linux distributions does WhoSees run on?","acceptedAnswer":{"@type":"Answer","text":"The AppImage runs on most 64-bit desktop distributions. Fedora users can also install the .rpm package."}},{"@type":"Question","name":"Why does Deep mode ask for my password?","acceptedAnswer":{"@type":"Answer","text":"Reading website names from network traffic needs administrator rights on Linux. Your system's own password window asks for it; WhoSees never sees or stores your password."}}]}]</script>
+<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
+  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+</div></header>
+<main class="page"><div class="wrap">
+  <div class="crumbs mono"><a href="/">Home</a></div>
+  <div class="phead">
+    <div class="idx mono"><b>LINUX</b></div>
+    <h1>See which programs on your Linux computer send your data, and where</h1>
+    <p class="lead">WhoSees shows, live on a map, which program is sending data, which company receives it and where in the world it goes. Free and open source, as an AppImage for any distribution or a Fedora package.</p>
+    <div class="ctas"><a class="btn" href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage" data-umami-event="download" data-umami-event-platform="linux">Download for Linux <span class="k">↓</span></a></div>
+  </div>
+  <div class="doc"><article>
+<h2>What you'll see</h2>
+<ul>
+<li><b>Which app</b> is sending data, by its real name.</li>
+<li><b>Which company</b> receives it: Google, Meta, Amazon, or an advertising or analytics firm you've never heard of. Trackers and advertisers are labelled.</li>
+<li><b>Where in the world</b> it goes, drawn live on a map from wherever you are.</li>
+<li><b>What kind of data</b> it probably is, like your location or advertising ID, plus a privacy report for each app.</li>
+<li><b>Warnings</b> when an app connects to a known scam website or malware server.</li>
+</ul>
+<h2>How to install WhoSees on Linux</h2>
+<h3>AppImage (any distribution)</h3>
+<ol>
+<li>Download <code>WhoSees-Linux.AppImage</code> (about 210 MB).</li>
+<li>Make it executable: right-click it, open <b>Properties</b> and turn on <b>Allow executing file as program</b>, or run <code>chmod +x WhoSees-Linux.AppImage</code>.</li>
+<li>Double-click it to start WhoSees. If it doesn't start, install your distribution's <code>libfuse2</code> (or <code>fuse</code>) package.</li>
+</ol>
+<h3>Fedora</h3>
+<p>Download <a href="https://github.com/techytj/whosees/releases/latest/download/whosees-fedora.x86_64.rpm" data-umami-event="download" data-umami-event-platform="fedora">whosees-fedora.x86_64.rpm</a> and install it with <code>sudo dnf install ./whosees-fedora.x86_64.rpm</code>. WhoSees then appears in your app menu.</p>
+<h2>Standard and Deep mode</h2>
+<table><tr><th>MODE</th><th>WHAT IT DOES</th></tr>
+<tr><td>Standard</td><td>No password needed. Shows programs, companies and places from the kernel's connection table.</td></tr>
+<tr><td>Deep</td><td>Asks for your login password through your system's password window each time you press Start. Adds website names and catches every connection. Reads packet headers only, never contents.</td></tr></table>
+<h2>Uninstalling</h2>
+<p>AppImage: delete the file. Fedora: <code>sudo dnf remove whosees</code>.</p>
+<h2>Questions</h2>
+<h3>Which Linux distributions does WhoSees run on?</h3><p>The AppImage runs on most 64-bit desktop distributions. Fedora users can also install the .rpm package.</p>
+<h3>Why does Deep mode ask for my password?</h3><p>Reading website names from network traffic needs administrator rights on Linux. Your system&#x27;s own password window asks for it; WhoSees never sees or stores your password.</p>
+  </article>
+  <aside class="side"><h4>GET WHOSEES</h4>
+  <a href="/android/">Android 10 and newer</a><a href="/windows/">Windows 10 and 11</a><a href="/linux/">Linux (any distribution)</a>
+  <h4 style="margin-top:20px">GUIDES</h4>
+  <a href="/guides/which-apps-are-tracking-me/">How to see which apps are tracking you</a><a href="/guides/private-dns-android/">What is Private DNS on Android?</a><a href="/privacy/">Privacy policy</a>
+  </aside>
+  </div>
+</div></main>
+<footer><div class="wrap">
+  <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
+  <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+</div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+</body>
+</html>

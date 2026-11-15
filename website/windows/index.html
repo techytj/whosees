@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WhoSees for Windows: see which apps send your data and where</title>
+<meta name="description" content="Free, open-source network monitor for Windows 10 and 11 that shows which app sends data to which company and where, live on a map. No account, nothing leaves your PC.">
+<link rel="canonical" href="https://whosees.app/windows/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WhoSees">
+<meta property="og:url" content="https://whosees.app/windows/">
+<meta property="og:title" content="WhoSees for Windows: see which apps send your data and where">
+<meta property="og:description" content="Free, open-source network monitor for Windows 10 and 11 that shows which app sends data to which company and where, live on a map. No account, nothing leaves your PC.">
+<meta property="og:image" content="https://whosees.app/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0b0d">
+<link rel="icon" href="/img/favicon.png">
+<link rel="apple-touch-icon" href="/img/icon.png">
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css?v=4">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"See which apps on your Windows PC send your data, and where","item":"https://whosees.app/windows/"}]},{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees for Windows 10, Windows 11","applicationCategory":"SecurityApplication","operatingSystem":"Windows 10, Windows 11","softwareVersion":"0.1.0","downloadUrl":"https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://www.gnu.org/licenses/gpl-3.0.html","url":"https://whosees.app/","author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"}},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why does Windows say 'Windows protected your PC'?","acceptedAnswer":{"@type":"Answer","text":"Windows shows this for new programs that aren't code-signed yet. It doesn't mean anything is wrong with WhoSees. Click More info, then Run anyway. WhoSees has applied for free code signing from the SignPath Foundation."}},{"@type":"Question","name":"Is WhoSees a firewall?","acceptedAnswer":{"@type":"Answer","text":"Not in this version. WhoSees shows which apps connect where; blocking is built but switched off for now."}},{"@type":"Question","name":"Does WhoSees read my traffic?","acceptedAnswer":{"@type":"Answer","text":"It reads where your data goes, never what's inside it. Almost all traffic is encrypted, and WhoSees doesn't open it."}}]}]</script>
+<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
+  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+</div></header>
+<main class="page"><div class="wrap">
+  <div class="crumbs mono"><a href="/">Home</a></div>
+  <div class="phead">
+    <div class="idx mono"><b>WINDOWS</b></div>
+    <h1>See which apps on your Windows PC send your data, and where</h1>
+    <p class="lead">WhoSees is a free, open-source network monitor made for everyone: it shows which app is sending data, which company receives it and where in the world it goes, live on a map, in plain English.</p>
+    <div class="ctas"><a class="btn" href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe" data-umami-event="download" data-umami-event-platform="windows">Download for Windows <span class="k">↓</span></a></div>
+  </div>
+  <div class="doc"><article>
+<h2>What you'll see</h2>
+<ul>
+<li><b>Which app</b> is sending data, by its real name.</li>
+<li><b>Which company</b> receives it: Google, Meta, Amazon, or an advertising or analytics firm you've never heard of. Trackers and advertisers are labelled.</li>
+<li><b>Where in the world</b> it goes, drawn live on a map from wherever you are.</li>
+<li><b>What kind of data</b> it probably is, like your location or advertising ID, plus a privacy report for each app.</li>
+<li><b>Warnings</b> when an app connects to a known scam website or malware server.</li>
+</ul>
+<h2>How to install WhoSees on Windows</h2>
+<ol>
+<li>Click <b>Download for Windows</b> to get <code>WhoSees-Windows-Setup.exe</code> (about 190 MB).</li>
+<li>Run the installer. Windows shows a blue <b>"Windows protected your PC"</b> screen: click <b>More info</b>, then <b>Run anyway</b>.</li>
+<li>Choose where to install it and click <b>Install</b>.</li>
+<li>Open WhoSees from the Start menu and click <b>Start live view</b>.</li>
+</ol>
+<div class="box"><b class="mono">WHY WINDOWS WARNS YOU</b><p>Windows shows that warning for any new program that isn't <i>code-signed</i> yet, meaning it doesn't carry a digital signature proving who published it. It doesn't mean anything is wrong with WhoSees. WhoSees has applied for free code signing from the <a href="https://signpath.org">SignPath Foundation</a>; once approved, the installer will be signed and the warning fades as more people install it.</p></div>
+<h2>Standard and Deep mode</h2>
+<table><tr><th>MODE</th><th>WHAT IT DOES</th></tr>
+<tr><td>Standard</td><td>No administrator rights needed. Shows apps, companies and places from Windows' own connection list.</td></tr>
+<tr><td>Deep</td><td>Asks Windows for permission (a Yes/No prompt) each time you press Start. Adds website names and catches every connection, even ones that last a split second. Still only reads where data goes, never what's inside it.</td></tr></table>
+<h2>Check your download</h2>
+<p>The Windows installer is built automatically by GitHub from the <a href="https://github.com/techytj/whosees">public source code</a>, never on a personal computer. To confirm your copy wasn't changed, open PowerShell in your Downloads folder and run <code>Get-FileHash WhoSees-Windows-Setup.exe</code>, then compare the result with <a href="https://github.com/techytj/whosees/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a>.</p>
+<h2>Requirements</h2>
+<table><tr><th>NEEDS</th><th></th></tr><tr><td>Windows</td><td>Windows 10 or 11, 64-bit</td></tr><tr><td>Space</td><td>About 190 MB to download</td></tr></table>
+<h2>Uninstalling</h2>
+<p><b>Settings → Apps → Installed apps → WhoSees → Uninstall</b>. Nothing keeps running after you close WhoSees.</p>
+<h2>Questions</h2>
+<h3>Why does Windows say &#x27;Windows protected your PC&#x27;?</h3><p>Windows shows this for new programs that aren&#x27;t code-signed yet. It doesn&#x27;t mean anything is wrong with WhoSees. Click More info, then Run anyway. WhoSees has applied for free code signing from the SignPath Foundation.</p>
+<h3>Is WhoSees a firewall?</h3><p>Not in this version. WhoSees shows which apps connect where; blocking is built but switched off for now.</p>
+<h3>Does WhoSees read my traffic?</h3><p>It reads where your data goes, never what&#x27;s inside it. Almost all traffic is encrypted, and WhoSees doesn&#x27;t open it.</p>
+  </article>
+  <aside class="side"><h4>GET WHOSEES</h4>
+  <a href="/android/">Android 10 and newer</a><a href="/windows/">Windows 10 and 11</a><a href="/linux/">Linux (any distribution)</a>
+  <h4 style="margin-top:20px">GUIDES</h4>
+  <a href="/guides/which-apps-are-tracking-me/">How to see which apps are tracking you</a><a href="/guides/private-dns-android/">What is Private DNS on Android?</a><a href="/privacy/">Privacy policy</a>
+  </aside>
+  </div>
+</div></main>
+<footer><div class="wrap">
+  <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
+  <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+</div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+</body>
+</html>

@@ -19,7 +19,7 @@ def check(name, ok, detail=''):
     fails += 0 if ok else 1
 
 def ssh(cmd, timeout=180):
-    return subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, cmd], capture_output=True, text=True, timeout=timeout).stdout
+    return subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, cmd], capture_output=True, text=True, errors='replace', timeout=timeout).stdout
 
 def ps(script, timeout=180):
     subprocess.run(['scp', '-q', '-o', 'BatchMode=yes', os.path.join(HERE, script), f'{VM}:C:/wiretrace/{script}'], check=True)

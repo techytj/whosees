@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WhoSees: see who your apps are talking to</title>
+<title>WhoSees: see which apps track you and where your data goes</title>
 <link rel="canonical" href="https://whosees.app/">
 <meta property="og:url" content="https://whosees.app/">
 <meta name="description" content="See which apps on your phone and computer send your data to which companies, and where, live on a map in plain English. Free and open source.">
@@ -23,326 +23,16 @@
 <meta name="twitter:description" content="A live map of which apps send data to which companies, in plain English. Free and open source, for Windows, Linux and Android.">
 <meta name="twitter:image" content="https://whosees.app/img/og.png">
 <link rel="apple-touch-icon" href="img/icon.png">
-<link rel="preload" href="fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
-<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees","description":"Shows, live on a world map, which app on your computer or phone sends data, which company receives it, where it goes and what kind of data it probably is. Runs locally; sends no data anywhere.","url":"https://whosees.app/","image":"https://whosees.app/img/og.png","screenshot":"https://whosees.app/img/screen-desktop.webp","applicationCategory":"SecurityApplication","operatingSystem":"Windows 10, Windows 11, Linux, Android 10+","softwareVersion":"0.1.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","downloadUrl":["https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"},"codeRepository":"https://github.com/techytj/whosees","isAccessibleForFree":true},{"@context":"https://schema.org","@type":"WebSite","name":"WhoSees","url":"https://whosees.app/"},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can it read my messages or passwords?","acceptedAnswer":{"@type":"Answer","text":"No. WhoSees looks at where your data goes, like reading the address on an envelope but never the letter inside. Almost everything apps send is encrypted, and WhoSees doesn't open it. The only exception is information an app sends completely unprotected, which anyone on your Wi-Fi could read. WhoSees points that out so you know."}},{"@type":"Question","name":"Is it a VPN? Does my data go somewhere?","acceptedAnswer":{"@type":"Answer","text":"On Android, WhoSees uses the phone's built-in VPN feature, because that's the only way Android lets an app see where other apps send data. It isn't a VPN service. Nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway."}},{"@type":"Question","name":"Why does it ask for permission or a password?","acceptedAnswer":{"@type":"Answer","text":"Seeing every connection and website name needs administrator approval on a computer. Windows shows a Yes/No prompt and Linux asks for your login password. The password goes to your computer's own security system, never to WhoSees. On Android you tap OK once to allow the VPN."}},{"@type":"Question","name":"Will it slow down my phone or drain the battery?","acceptedAnswer":{"@type":"Answer","text":"It only runs while you're looking, so there's no drain the rest of the time. While it's on, things work normally. In testing on a Samsung Galaxy S21, streaming, browsing and downloads all ran at full speed."}},{"@type":"Question","name":"What do \"seen\" and \"likely\" mean?","acceptedAnswer":{"@type":"Answer","text":"\"Seen\" means WhoSees read it directly in data an app sent unprotected, your location for example. \"Likely\" means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives. It never presents a guess as a fact."}},{"@type":"Question","name":"Is it really free? What's the catch?","acceptedAnswer":{"@type":"Answer","text":"No catch. WhoSees is open source and every feature is free, for everyone. There are no ads, no subscription and nothing is sold. If you'd like to help, you can buy me a coffee, but you never have to."}},{"@type":"Question","name":"Who's behind WhoSees?","acceptedAnswer":{"@type":"Answer","text":"One independent developer, working with an AI assistant. The full story is in \"How it was made\" above."}}]}]</script>
-<style>
-@font-face { font-family: "Archivo"; src: url("fonts/archivo.woff2") format("woff2-variations"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
-@font-face { font-family: "Plex Mono"; src: url("fonts/plex-mono.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Plex Mono"; src: url("fonts/plex-mono-500.woff2") format("woff2"); font-weight: 500 700; font-display: swap; }
-:root {
-  --bg: #0a0b0d; --bg-2: #101215; --bg-3: #16191d;
-  --fg: #eceae4; --fg-2: #a4a39c; --fg-3: #6b6c6a;
-  --line: rgba(236,234,228,.1); --line-2: rgba(236,234,228,.2);
-  --sig: #ff5b1f; --sig-ink: #140700; --ok: #b9f28c;
-  --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --mono: "Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --max: 1280px; --gut: clamp(16px, 4vw, 48px);
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 400 18px/1.55 var(--sans); font-stretch: 100%;
-  -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
-img { max-width: 100%; height: auto; display: block; }
-::selection { background: var(--sig); color: var(--sig-ink); }
-.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gut); }
-.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: .02em; }
-.wide { font-stretch: 125%; }
-h1, h2, h3 { margin: 0; font-stretch: 125%; font-weight: 800; letter-spacing: -0.035em; line-height: .98; text-wrap: balance; }
-h2 { font-size: clamp(34px, 4.8vw, 66px); }
-h2 .dim, h1 .dim { color: var(--fg-3); }
-p { margin: 0 0 1em; }
-.sig { color: var(--sig); }
-
-/* frames with corner marks */
-.marks { position: relative; }
-.marks::before, .marks::after { content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none; z-index: 3; }
-.marks::before { left: -1px; top: -1px; border-left: 2px solid var(--sig); border-top: 2px solid var(--sig); }
-.marks::after { right: -1px; bottom: -1px; border-right: 2px solid var(--sig); border-bottom: 2px solid var(--sig); }
-
-/* header */
-.bar { position: fixed; inset: 0 0 auto; z-index: 60; border-bottom: 1px solid var(--line); background: rgba(10,11,13,.82); backdrop-filter: blur(10px); }
-.bar .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 18px; }
-.logo { display: flex; align-items: center; gap: 11px; text-decoration: none; font-weight: 800; font-stretch: 125%; font-size: 19px; letter-spacing: -0.03em; }
-.logo img { width: 28px; height: 28px; border-radius: 7px; }
-.bar nav { display: flex; align-items: center; gap: clamp(14px, 2.4vw, 32px); }
-.bar nav a { font-family: var(--mono); font-size: 12.5px; text-decoration: none; color: var(--fg-2); }
-.bar nav a:hover { color: var(--fg); }
-.btn { display: inline-flex; align-items: center; gap: 14px; height: 52px; padding: 0 22px; font: 600 15px/1 var(--sans); font-stretch: 112%; letter-spacing: -0.01em;
-  text-decoration: none; background: var(--sig); color: var(--sig-ink); border: 1px solid var(--sig); transition: background .15s, color .15s; }
-.btn:hover { background: var(--fg); border-color: var(--fg); }
-.btn .k { font: 500 12px var(--mono); opacity: .7; }
-.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line-2); }
-.btn.ghost:hover { border-color: var(--fg); background: transparent; }
-.btn.sm { height: 38px; padding: 0 14px; font-size: 13.5px; }
-.bar nav a.btn { color: var(--sig-ink); }
-
-/* hero */
-.hero { position: relative; min-height: 100vh; min-height: 100svh; padding: 112px 0 0; display: flex; flex-direction: column; overflow: hidden; border-bottom: 1px solid var(--line); }
-.hero .map { position: absolute; inset: 0; z-index: 0; }
-.hero .map svg { width: 100%; height: 100%; display: block; }
-.hero .grid { position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 80px 80px; opacity: .45;
-  -webkit-mask: linear-gradient(to bottom, #000, transparent 85%); mask: linear-gradient(to bottom, #000, transparent 85%); }
-.hero::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(90deg, rgba(10,11,13,.94) 0%, rgba(10,11,13,.82) 36%, rgba(10,11,13,.2) 64%, rgba(10,11,13,.05) 100%),
-              linear-gradient(to bottom, rgba(10,11,13,.5), transparent 22%, transparent 70%, var(--bg)); }
-.hero .wrap { position: relative; z-index: 2; width: 100%; flex: 1; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 40px; align-items: center; }
-.status { display: inline-flex; align-items: center; gap: 10px; color: var(--fg-2); margin-bottom: 26px; }
-.status i { width: 8px; height: 8px; background: var(--sig); animation: pulse 1.4s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .25; } }
-.hero h1 { font-size: clamp(46px, 7.2vw, 112px); letter-spacing: -0.045em; line-height: .92; }
-.hero .lead { font-size: clamp(18px, 1.5vw, 21px); color: var(--fg-2); max-width: 36ch; margin: 28px 0 34px; }
-.hero .lead b { color: var(--fg); font-weight: 600; }
-.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
-.checks { display: flex; flex-wrap: wrap; gap: 8px 26px; margin-top: 30px; color: var(--fg-2); }
-.checks span::before { content: "✓  "; color: var(--ok); }
-/* readout panel */
-.readout { background: rgba(16,18,21,.86); border: 1px solid var(--line-2); backdrop-filter: blur(8px); }
-.readout .rh { display: flex; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); color: var(--fg-3); }
-.readout .rh b { color: var(--fg); font-weight: 500; }
-.nums { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); }
-.nums div { padding: 14px 16px 16px; border-right: 1px solid var(--line); }
-.nums div:last-child { border-right: 0; }
-.nums small { display: block; font: 400 10.5px var(--mono); letter-spacing: .08em; color: var(--fg-3); }
-.nums b { display: block; font-size: 34px; font-weight: 700; font-stretch: 112%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; margin-top: 4px; }
-.feed { height: 228px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; -webkit-mask: linear-gradient(transparent, #000 40%); mask: linear-gradient(transparent, #000 40%); }
-.fr { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); animation: in .5s ease; }
-@keyframes in { from { opacity: 0; transform: translateY(8px); } }
-.fr i { width: 8px; height: 8px; background: var(--c, var(--fg-2)); }
-.fr span { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fr span b { font-weight: 600; }
-.fr em { font: 400 11px var(--mono); font-style: normal; color: var(--c, var(--fg-3)); border: 1px solid currentColor; padding: 2px 6px 1px; white-space: nowrap; }
-.readout .rf { padding: 10px 16px; border-top: 1px solid var(--line); color: var(--fg-3); }
-/* ticker */
-.ticker { position: relative; z-index: 2; margin-top: 48px; border-top: 1px solid var(--line); background: rgba(10,11,13,.7); overflow: hidden; white-space: nowrap; }
-.ticker div { display: inline-block; padding: 14px 0; animation: tick 60s linear infinite; color: var(--fg-2); }
-.ticker span { margin-right: 46px; } .ticker span b { color: var(--fg); font-weight: 500; } .ticker span i { font-style: normal; color: var(--sig); }
-@keyframes tick { to { transform: translateX(-50%); } }
-
-/* sections */
-section { padding: clamp(72px, 10vw, 140px) 0; border-bottom: 1px solid var(--line); position: relative; }
-.idx { display: flex; align-items: center; gap: 14px; color: var(--fg-3); margin-bottom: 26px; }
-.idx b { color: var(--sig); font-weight: 500; }
-.idx::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.big { font-size: clamp(21px, 2vw, 27px); line-height: 1.4; color: var(--fg-2); max-width: 40ch; font-weight: 400; }
-.big b { color: var(--fg); font-weight: 600; }
-
-/* ledger */
-.ledger { width: 100%; border-collapse: collapse; margin-top: 48px; border-top: 1px solid var(--line-2); }
-.ledger th { text-align: left; font: 400 11px var(--mono); letter-spacing: .08em; color: var(--fg-3); padding: 14px 16px 12px 0; border-bottom: 1px solid var(--line); }
-.ledger td { padding: 20px 16px 20px 0; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 17px; }
-.ledger td:first-child { font-weight: 700; font-stretch: 112%; font-size: 18px; }
-.ledger td small { display: block; font: 400 11.5px var(--mono); color: var(--fg-3); font-stretch: 100%; margin-top: 2px; }
-.ledger td.w { font: 400 13px var(--mono); color: var(--sig); }
-.redact { background: linear-gradient(var(--fg), var(--fg)) right / 100% 100% no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  padding: 0 3px; margin: 0 -3px; transition: background-size .6s cubic-bezier(.7,0,.2,1); }
-.redact.open { background-size: 0 100%; }
-.note { color: var(--fg-3); margin-top: 16px; }
-
-/* steps */
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 56px; border-top: 1px solid var(--line-2); }
-.step { padding: 22px 24px 26px 0; position: relative; }
-.step + .step { padding-left: 24px; border-left: 1px solid var(--line); }
-.step .n { font: 500 12px var(--mono); color: var(--sig); }
-.step h3 { font-size: 23px; margin: 14px 0 8px; letter-spacing: -0.025em; }
-.step p { color: var(--fg-2); font-size: 16px; margin: 0; }
-.step::before { content: ""; position: absolute; top: -4px; left: 0; width: 7px; height: 7px; background: var(--sig); }
-.step + .step::before { left: -4px; }
-.shots { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(0, 1fr); gap: 20px; margin-top: 56px; align-items: end; }
-.shots figure { margin: 0; }
-.shots .marks { border: 1px solid var(--line-2); background: #000; }
-.shots .phone .marks { border-radius: 0; }
-figcaption { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; color: var(--fg-3); }
-
-/* what you'll see: spec grid */
-.spec { display: grid; grid-template-columns: repeat(2, 1fr); margin-top: 56px; border-top: 1px solid var(--line-2); border-left: 1px solid var(--line); }
-.spec > div { padding: 30px 30px 34px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; }
-.spec .q { font-size: clamp(26px, 2.6vw, 36px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.035em; line-height: 1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.spec p { color: var(--fg-2); margin: 14px 0 0; max-width: 46ch; }
-.spec .eg { margin-top: 18px; color: var(--fg); display: flex; flex-wrap: wrap; gap: 8px; }
-.spec .eg span { border: 1px solid var(--line-2); padding: 4px 9px 3px; }
-.tag { font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--sig-ink); background: var(--sig); padding: 4px 8px 3px; }
-.warn { margin-top: 28px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; border: 1px solid var(--sig); max-width: 860px; }
-.warn .l { background: var(--sig); color: var(--sig-ink); padding: 18px 18px; font: 500 12px var(--mono); letter-spacing: .08em; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
-.warn .r { padding: 20px 24px; }
-.warn .r b { display: block; font-size: 21px; font-weight: 700; font-stretch: 112%; letter-spacing: -0.02em; margin-bottom: 6px; }
-.warn .r p { margin: 0; color: var(--fg-2); }
-
-/* guarantees */
-.zero { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 56px; border-top: 1px solid var(--line-2); }
-.zero div { padding: 26px 22px 30px 0; }
-.zero div + div { padding-left: 22px; border-left: 1px solid var(--line); }
-.zero b { display: block; font-size: clamp(54px, 7vw, 104px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.05em; line-height: .9; font-variant-numeric: tabular-nums; }
-.zero b small { font-size: .42em; letter-spacing: -0.03em; }
-.zero span { display: block; margin-top: 14px; font-weight: 600; font-size: 18px; }
-.zero p { color: var(--fg-2); font-size: 15.5px; margin: 6px 0 0; }
-
-/* pricing */
-.price { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(32px, 6vw, 96px); align-items: start; }
-.table { border: 1px solid var(--line-2); }
-.table .head, .table .row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; }
-.table .head > div { padding: 20px 18px 18px; border-left: 1px solid var(--line); }
-.table .head > div:first-child { border-left: 0; }
-.table .head .p { font-size: 13px; color: var(--fg-3); font-family: var(--mono); }
-.table .head .pl { font-size: 22px; font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; }
-.table .head .amt { font-size: 40px; font-weight: 800; font-stretch: 112%; letter-spacing: -0.04em; line-height: 1; margin-top: 10px; font-variant-numeric: tabular-nums; }
-.table .head .amt small { font: 400 12px var(--mono); color: var(--fg-3); letter-spacing: 0; display: block; margin-top: 6px; }
-.table .head .prem { background: var(--bg-3); position: relative; }
-.table .head .prem::before { content: "ONE-TIME"; position: absolute; top: -1px; right: -1px; font: 500 10px var(--mono); letter-spacing: .1em; background: var(--sig); color: var(--sig-ink); padding: 4px 7px 3px; }
-.table .row > div { padding: 13px 18px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); font-size: 15.5px; }
-.table .row > div:first-child { border-left: 0; color: var(--fg-2); }
-.table .row > div:nth-child(3) { background: var(--bg-3); }
-.y { color: var(--ok); } .n { color: var(--fg-3); }
-.table .tot > div { font-weight: 700; font-size: 17px; }
-.table .tot > div:first-child { color: var(--fg); }
-.bill { margin-top: 30px; border-top: 1px solid var(--line-2); max-width: 520px; }
-.bill div { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--fg-2); }
-.bill b { color: var(--fg); font-weight: 500; }
-.bill div:first-child b { color: var(--ok); }
-.coffee { border: 1px solid var(--line-2); background: var(--bg-2); padding: clamp(24px, 3vw, 36px); }
-.coffee .ch { color: var(--sig); margin-bottom: 14px; }
-.coffee h3 { font-size: clamp(26px, 2.6vw, 36px); letter-spacing: -0.035em; }
-.coffee > p { color: var(--fg-2); margin: 14px 0 22px; }
-.amts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.amt { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; border: 1px solid var(--line-2); text-decoration: none; transition: background .15s, border-color .15s, color .15s; }
-.amt b { font-size: clamp(32px, 3.4vw, 46px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.045em; line-height: .9; }
-.amt span { color: var(--fg-3); font-size: 11.5px; }
-.amt:hover { border-color: var(--sig); }
-.amt.hot { border-color: var(--sig); }
-.amt.hot:hover, .amt:hover { background: var(--sig); color: var(--sig-ink); } .amt:hover span { color: var(--sig-ink); }
-.cf { color: var(--fg-3); margin: 16px 0 0; }
-.why { margin-top: 26px; color: var(--fg-2); font-size: 16px; max-width: 52ch; border-left: 2px solid var(--sig); padding-left: 16px; }
-
-/* note */
-.letter { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 6vw, 96px); }
-.letter .body p { font-size: 19px; color: var(--fg-2); }
-.letter .body p:first-child { font-size: 23px; color: var(--fg); line-height: 1.45; }
-.signed { display: flex; align-items: center; gap: 18px; margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
-.signed b { font-size: 26px; font-weight: 800; font-stretch: 125%; letter-spacing: -0.03em; }
-.signed span { color: var(--fg-3); }
-.facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 32px; border: 1px solid var(--line); }
-.facts div { padding: 16px 18px; border-left: 1px solid var(--line); }
-.facts div:first-child { border-left: 0; }
-.facts b { display: block; font-weight: 700; }
-.facts span { color: var(--fg-3); }
-
-/* downloads */
-.dl { margin-top: 48px; border-top: 1px solid var(--line-2); }
-.dl a { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 24px; align-items: center; padding: 26px 0; border-bottom: 1px solid var(--line); text-decoration: none; transition: background .2s, padding .2s; }
-.dl a:hover { background: var(--bg-2); padding-left: 16px; padding-right: 16px; }
-.dl .n { font: 500 12px var(--mono); color: var(--sig); }
-.dl .os { font-size: clamp(30px, 4vw, 54px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.045em; line-height: 1; }
-.dl .meta { color: var(--fg-2); }
-.dlnote { color: var(--fg-3); margin: 18px 0 0; } .dlnote a { color: var(--fg-2); }
-.install { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 34px; border: 1px solid var(--line); }
-.install > div { padding: 20px 22px; border-left: 1px solid var(--line); } .install > div:first-child { border-left: 0; }
-.install b { font-weight: 700; font-stretch: 112%; } .install p { color: var(--fg-2); font-size: 15px; margin: 6px 0 0; }
-.install code { font-family: var(--mono); font-size: 13px; color: var(--fg); }
-@media (max-width: 680px) { .install { grid-template-columns: 1fr; } .install > div { border-left: 0; border-top: 1px solid var(--line); } .install > div:first-child { border-top: 0; } }
-.dl .go { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--line-2); font-size: 20px; transition: background .15s, color .15s, border-color .15s; }
-.dl a:hover .go { background: var(--sig); color: var(--sig-ink); border-color: var(--sig); }
-
-/* Windows warning explainer */
-.wwarn { color: var(--sig); }
-dialog#winDlg { width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--fg); overflow: auto; }
-dialog#winDlg::backdrop { background: rgba(5,6,8,.78); backdrop-filter: blur(4px); }
-.wd { padding: clamp(20px, 3.4vw, 36px); }
-.wd .idx { margin-bottom: 14px; }
-.wd h3 { font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.035em; }
-.wd .wl { color: var(--fg-2); margin: 14px 0 16px; }
-.ss { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.ssw { background: #1f5fa8; color: #fff; padding: 16px 18px 14px; font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; line-height: 1.45; min-height: 150px; display: flex; flex-direction: column; }
-.sst { font-size: 19px; font-weight: 300; margin-bottom: 8px; }
-.ssb { opacity: .92; flex: 1; }
-.ssl, .ssf { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-.ssf { justify-content: flex-end; }
-.ss .hl { outline: 2px solid var(--sig); outline-offset: 3px; text-decoration: underline; }
-.ss .btn2, .ss .btn3 { border: 1px solid #fff; padding: 5px 14px; text-decoration: none; }
-.ss .btn2 { order: 1; } .ss .ssf i { order: 2; } .ss .btn3 { order: 3; opacity: .9; }
-.ss i { font: 700 12px var(--mono); font-style: normal; background: var(--sig); color: var(--sig-ink); width: 20px; height: 20px; display: grid; place-items: center; }
-.cap { color: var(--fg-2); margin: 12px 0 0; }
-.wd .wwhy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; border: 1px solid var(--line); }
-.wd .wwhy > div { padding: 16px 18px; border-left: 1px solid var(--line); }
-.wd .wwhy > div:first-child { border-left: 0; }
-.wd .wwhy b { font-weight: 700; font-stretch: 112%; }
-.wd .wwhy p { color: var(--fg-2); font-size: 14.5px; margin: 6px 0 0; }
-.wd .wwhy code { font-family: var(--mono); font-size: 12px; color: var(--fg); background: var(--bg-3); padding: 1px 4px; }
-.wf { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
-@media (max-width: 760px) { .ss, .wd .wwhy { grid-template-columns: 1fr; } .wd .wwhy > div { border-left: 0; border-top: 1px solid var(--line); } .wd .wwhy > div:first-child { border-top: 0; } .wf .btn { flex: 1 1 100%; justify-content: space-between; } }
-
-/* faq */
-.faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 clamp(28px, 5vw, 64px); margin-top: 48px; align-items: start; }
-.faq details { border-top: 1px solid var(--line-2); padding: 18px 0 20px; }
-.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 19px; font-weight: 700; letter-spacing: -0.015em; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; font: 400 18px var(--mono); color: var(--sig); }
-.faq details[open] summary::after { content: "−"; }
-.faq p { margin: 12px 0 0; color: var(--fg-2); font-size: 16.5px; }
-
-footer { padding: 48px 0 64px; color: var(--fg-3); }
-footer .wrap { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 28px; }
-footer h4 { margin: 0 0 10px; font: 500 11px var(--mono); letter-spacing: .1em; color: var(--fg-2); }
-footer .mono { line-height: 1.75; }
-.huge { font-size: clamp(44px, 12.6vw, 200px); font-weight: 900; font-stretch: 125%; letter-spacing: -0.06em; line-height: .8; color: var(--bg-3); margin: 40px 0 0; user-select: none; white-space: nowrap; overflow: hidden; }
-
-.rv { opacity: 0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
-.rv.in { opacity: 1; transform: none; }
-
-@media (max-width: 1040px) {
-  .hero .wrap { grid-template-columns: 1fr; padding-bottom: 8px; }
-  .readout { max-width: 560px; }
-  .steps { grid-template-columns: repeat(2, 1fr); }
-  .step:nth-child(3) { border-left: 0; padding-left: 0; } .step:nth-child(3)::before { left: 0; }
-  .step:nth-child(n+3) { border-top: 1px solid var(--line); }
-  .zero { grid-template-columns: repeat(2, 1fr); }
-  .zero div:nth-child(3) { border-left: 0; padding-left: 0; }
-  .zero div:nth-child(n+3) { border-top: 1px solid var(--line); }
-  .price, .letter { grid-template-columns: 1fr; }
-  .bar nav a:not(.btn) { display: none; }
-}
-@media (max-width: 680px) {
-  body { font-size: 17px; }
-  .bar .wrap { height: 56px; }
-  .hero { padding-top: 92px; }
-  .hero::after { background: linear-gradient(to bottom, rgba(10,11,13,.86), rgba(10,11,13,.7) 50%, rgba(10,11,13,.5) 75%, var(--bg)); }
-  .hero h1 { font-size: clamp(40px, 12.4vw, 60px); }
-  .ctas .btn { flex: 1 1 100%; justify-content: space-between; }
-  .nums b { font-size: 26px; }
-  .ledger thead { display: none; }
-  .ledger tr { display: block; padding: 16px 0; border-bottom: 1px solid var(--line); }
-  .ledger td { display: block; border: 0; padding: 2px 0; }
-  .steps { grid-template-columns: 1fr; }
-  .step, .step + .step { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
-  .step::before, .step + .step::before { left: 0; }
-  .shots { grid-template-columns: 1fr; }
-  .shots .phone { width: 64%; margin-left: auto; }
-  .spec { grid-template-columns: 1fr; }
-  .spec > div { padding: 24px 20px 28px; }
-  .warn .l { writing-mode: horizontal-tb; transform: none; padding: 10px 16px; }
-  .warn { grid-template-columns: 1fr; }
-  .zero div, .zero div + div { padding: 22px 12px 24px 0; }
-  .zero div:nth-child(even) { padding-left: 14px; }
-  .table .head .amt { font-size: 30px; }
-  .table .head > div, .table .row > div { padding-left: 12px; padding-right: 10px; }
-  .facts { grid-template-columns: 1fr; } .facts div { border-left: 0; border-top: 1px solid var(--line); } .facts div:first-child { border-top: 0; }
-  .dl a { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; }
-  .dl .n { display: none; } .dl .meta { grid-column: 1; } .dl .go { grid-row: 1 / span 2; grid-column: 2; }
-  .faq { grid-template-columns: 1fr; }
-  footer .wrap { grid-template-columns: 1fr; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  .rv { opacity: 1; transform: none; }
-}
-</style>
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","name":"WhoSees","description":"Shows, live on a world map, which app on your computer or phone sends data, which company receives it, where it goes and what kind of data it probably is. Runs locally; sends no data anywhere.","url":"https://whosees.app/","image":"https://whosees.app/img/og.png","screenshot":"https://whosees.app/img/screen-desktop.webp","applicationCategory":"SecurityApplication","operatingSystem":"Windows 10, Windows 11, Linux, Android 10+","softwareVersion":"0.1.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","downloadUrl":["https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage","https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"TechyTJ","url":"https://github.com/techytj"},"codeRepository":"https://github.com/techytj/whosees","isAccessibleForFree":true},{"@context":"https://schema.org","@type":"WebSite","name":"WhoSees","url":"https://whosees.app/"},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Can it read my messages or passwords?","acceptedAnswer":{"@type":"Answer","text":"No. WhoSees looks at where your data goes, like reading the address on an envelope but never the letter inside. Almost everything apps send is encrypted, and WhoSees doesn't open it. The only exception is information an app sends completely unprotected, which anyone on your Wi-Fi could read. WhoSees points that out so you know."}},{"@type":"Question","name":"Is it a VPN? Does my data go somewhere?","acceptedAnswer":{"@type":"Answer","text":"On Android, WhoSees uses the phone's built-in VPN feature, because that's the only way Android lets an app see where other apps send data. It isn't a VPN service. Nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway. More on the Android page, and if your phone uses Private DNS, see how it affects WhoSees."}},{"@type":"Question","name":"Why does it ask for permission or a password?","acceptedAnswer":{"@type":"Answer","text":"Seeing every connection and website name needs administrator approval on a computer. Windows shows a Yes/No prompt and Linux asks for your login password. The password goes to your computer's own security system, never to WhoSees. On Android you tap OK once to allow the VPN."}},{"@type":"Question","name":"Will it slow down my phone or drain the battery?","acceptedAnswer":{"@type":"Answer","text":"It only runs while you're looking, so there's no drain the rest of the time. While it's on, things work normally. In testing on a Samsung Galaxy S21, streaming, browsing and downloads all ran at full speed."}},{"@type":"Question","name":"What do \"seen\" and \"likely\" mean?","acceptedAnswer":{"@type":"Answer","text":"\"Seen\" means WhoSees read it directly in data an app sent unprotected, your location for example. \"Likely\" means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives. It never presents a guess as a fact."}},{"@type":"Question","name":"Is it really free? What's the catch?","acceptedAnswer":{"@type":"Answer","text":"No catch. WhoSees is open source and every feature is free, for everyone. There are no ads, no subscription and nothing is sold. If you'd like to help, you can buy me a coffee, but you never have to."}},{"@type":"Question","name":"Is WhoSees a network monitor or a firewall?","acceptedAnswer":{"@type":"Answer","text":"It's a network monitor made for everyone: it shows which app connects where, which company that is, and where in the world, in plain English. Blocking (like a firewall) is built in but switched off in this first version."}},{"@type":"Question","name":"How is it different from GlassWire, Little Snitch or Exodus Privacy?","acceptedAnswer":{"@type":"Answer","text":"GlassWire (Windows) and Little Snitch (Mac) are network monitors and firewalls with paid versions. Exodus Privacy lists the trackers built into Android apps, but doesn't watch them live. WhoSees shows live which app sends data to which company and where, on Windows, Linux and Android, and it's free and open source."}},{"@type":"Question","name":"Who's behind WhoSees?","acceptedAnswer":{"@type":"Answer","text":"One independent developer, working with an AI assistant. The full story is in \"How it was made\" above."}}]}]</script>
+<link rel="stylesheet" href="/css/site.css?v=4">
 <script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
 </head>
 <body>
 
 <header class="bar"><div class="wrap">
   <a class="logo" href="#"><img src="img/icon.png" alt="">WhoSees</a>
-  <nav><a href="#how">How it works</a><a href="#see">What you'll see</a><a href="#price">Price</a><a href="#note">Who made it</a><a href="#faq">Questions</a><a class="btn sm" href="#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+  <nav><a href="#how">How it works</a><a href="#see">What you'll see</a><a href="#price">Price</a><a href="/guides/">Guides</a><a href="#faq">Questions</a><a class="btn sm" href="#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
 </div></header>
 
 <main>
@@ -415,9 +105,10 @@ footer .mono { line-height: 1.75; }
 <section id="see"><div class="wrap">
   <div class="idx mono"><b>03</b> WHAT YOU'LL SEE</div>
   <h2 class="rv">Four answers your phone <span class="dim">never gives you.</span></h2>
+  <p class="big rv" style="margin-top:22px">Find out <b>which apps are tracking you</b>, which advertising and analytics companies receive your data, and where in the world it goes, on Android, Windows and Linux.</p>
   <div class="spec">
     <div class="rv"><div class="q">Which app</div><p>Its real name and icon, not a technical code. See who's sending the most.</p></div>
-    <div class="rv"><div class="q">Which company</div><p>Google, Meta, Amazon, or the ad network nobody's heard of. Trackers and advertisers are labelled for what they are.</p></div>
+    <div class="rv"><div class="q">Which company</div><p>Google, Meta, Amazon, or the ad network nobody's heard of. Trackers and advertisers are labelled for what they are. <a href="/guides/which-apps-are-tracking-me/">How to see which apps are tracking you</a>.</p></div>
     <div class="rv"><div class="q">Where</div><p>The city and country your data lands in, drawn on the map from wherever you are.</p></div>
     <div class="rv"><div class="q">What kind of data</div><p>When an app sends it unprotected, WhoSees spots it directly. Otherwise it tells you what that kind of company usually collects, clearly marked "likely".</p>
       <div class="eg mono"><span>your location</span><span>advertising ID</span><span>searches</span><span>app usage</span></div></div>
@@ -485,11 +176,11 @@ footer .mono { line-height: 1.75; }
   <div class="idx mono"><b>07</b> DOWNLOAD</div>
   <h2 class="rv">Get WhoSees. <span class="dim">It's free.</span></h2>
   <div class="dl">
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk" class="rv" data-umami-event="download" data-umami-event-platform="android"><span class="n">A</span><span class="os">Android</span><span class="meta mono">Android 10 or newer · APK, about 80 MB</span><span class="go">↓</span></a>
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe" class="rv" data-win><span class="n">W</span><span class="os">Windows</span><span class="meta mono">Windows 10 &amp; 11, 64-bit · installer, about 190 MB<br><span class="wwarn">Windows will show a warning when you run it. Here's why.</span></span><span class="go">↓</span></a>
-    <a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage" class="rv" data-umami-event="download" data-umami-event-platform="linux"><span class="n">L</span><span class="os">Linux</span><span class="meta mono">AppImage for any distribution, about 210 MB</span><span class="go">↓</span></a>
+    <div class="dlr rv"><a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Android.apk" data-umami-event="download" data-umami-event-platform="android"><span class="n">A</span><span class="os">Android</span><span class="meta mono">Android 10 or newer · APK, about 80 MB</span><span class="go">↓</span></a><a class="dlguide mono" href="/android/">Android install guide →</a></div>
+    <div class="dlr rv"><a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Windows-Setup.exe" data-win><span class="n">W</span><span class="os">Windows</span><span class="meta mono">Windows 10 &amp; 11, 64-bit · installer, about 190 MB<br><span class="wwarn">Windows will show a warning when you run it. Here's why.</span></span><span class="go">↓</span></a><a class="dlguide mono" href="/windows/">Windows install guide →</a></div>
+    <div class="dlr rv"><a href="https://github.com/techytj/whosees/releases/latest/download/WhoSees-Linux.AppImage" data-umami-event="download" data-umami-event-platform="linux"><span class="n">L</span><span class="os">Linux</span><span class="meta mono">AppImage for any distribution, about 210 MB</span><span class="go">↓</span></a><a class="dlguide mono" href="/linux/">Linux install guide →</a></div>
   </div>
-  <p class="dlnote mono">Also: <a href="https://github.com/techytj/whosees/releases/latest/download/whosees-fedora.x86_64.rpm" data-umami-event="download" data-umami-event-platform="fedora">Fedora package (.rpm)</a> · <a href="https://github.com/techytj/whosees/releases">all versions and release notes</a> · <a href="#install">install help</a></p>
+  <p class="dlnote mono">Also: <a href="https://github.com/techytj/whosees/releases/latest/download/whosees-fedora.x86_64.rpm" data-umami-event="download" data-umami-event-platform="fedora">Fedora package (.rpm)</a> · <a href="https://github.com/techytj/whosees/releases">all versions and release notes</a> · <a href="#install">install help</a> · step-by-step guides for <a href="/android/">Android</a>, <a href="/windows/">Windows</a> and <a href="/linux/">Linux</a></p>
   <p class="dlnote mono" id="signing">Code signing policy: the Windows installer is built automatically by GitHub from the <a href="https://github.com/techytj/whosees">public source code</a>; free Windows code signing is being set up with <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>. <a href="https://github.com/techytj/whosees#code-signing-policy">Full policy and privacy statement</a>.</p>
   <div class="install rv" id="install">
     <div><b>Android</b><p>Open the downloaded file and allow your browser to install apps when asked. Android may show a warning because WhoSees isn't from Google Play yet.</p></div>
@@ -503,13 +194,15 @@ footer .mono { line-height: 1.75; }
   <div class="faq">
     <div>
       <details><summary>Can it read my messages or passwords?</summary><p>No. WhoSees looks at where your data goes, like reading the address on an envelope but never the letter inside. Almost everything apps send is encrypted, and WhoSees doesn't open it. The only exception is information an app sends completely unprotected, which anyone on your Wi-Fi could read. WhoSees points that out so you know.</p></details>
-      <details><summary>Is it a VPN? Does my data go somewhere?</summary><p>On Android, WhoSees uses the phone's built-in VPN feature, because that's the only way Android lets an app see where other apps send data. It isn't a VPN service. Nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway.</p></details>
+      <details><summary>Is it a VPN? Does my data go somewhere?</summary><p>On Android, WhoSees uses the phone's built-in VPN feature, because that's the only way Android lets an app see where other apps send data. It isn't a VPN service. Nothing is sent to a VPN server or to us, and your data goes exactly where it was going anyway. More on the <a href="/android/">Android page</a>, and if your phone uses Private DNS, see <a href="/guides/private-dns-android/">how it affects WhoSees</a>.</p></details>
       <details><summary>Why does it ask for permission or a password?</summary><p>Seeing every connection and website name needs administrator approval on a computer. Windows shows a Yes/No prompt and Linux asks for your login password. The password goes to your computer's own security system, never to WhoSees. On Android you tap OK once to allow the VPN.</p></details>
       <details><summary>Will it slow down my phone or drain the battery?</summary><p>It only runs while you're looking, so there's no drain the rest of the time. While it's on, things work normally. In testing on a Samsung Galaxy S21, streaming, browsing and downloads all ran at full speed.</p></details>
     </div>
     <div>
       <details><summary>What do "seen" and "likely" mean?</summary><p>"Seen" means WhoSees read it directly in data an app sent unprotected, your location for example. "Likely" means the traffic was encrypted, so WhoSees tells you what that kind of company usually receives. It never presents a guess as a fact.</p></details>
       <details><summary>Is it really free? What's the catch?</summary><p>No catch. WhoSees is open source and every feature is free, for everyone. There are no ads, no subscription and nothing is sold. If you'd like to help, you can buy me a coffee, but you never have to.</p></details>
+      <details><summary>Is WhoSees a network monitor or a firewall?</summary><p>It's a network monitor made for everyone: it shows which app connects where, which company that is, and where in the world, in plain English. Blocking (like a firewall) is built in but switched off in this first version.</p></details>
+      <details><summary>How is it different from GlassWire, Little Snitch or Exodus Privacy?</summary><p>GlassWire (Windows) and Little Snitch (Mac) are network monitors and firewalls with paid versions. Exodus Privacy lists the trackers built into Android apps, but doesn't watch them live. WhoSees shows live which app sends data to which company and where, on Windows, Linux and Android, and it's free and open source.</p></details>
       <details><summary>Who's behind WhoSees?</summary><p>One independent developer, working with an AI assistant. The full story is in "How it was made" above.</p></details>
     </div>
   </div>
@@ -517,9 +210,9 @@ footer .mono { line-height: 1.75; }
 </main>
 
 <footer><div class="wrap">
-  <div><a class="logo" href="#"><img src="img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See who your apps are talking to. Free, open source, and private by design.</p></div>
-  <div class="mono"><h4>THIS WEBSITE</h4>No cookies or trackers.<br>Visits are counted privately on our own server.<br>Open source under GPL-3.0 · <a href="https://github.com/techytj/whosees">Source code</a><br><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a></div>
-  <div class="mono"><h4>DATA</h4>Map © OpenStreetMap contributors, Protomaps<br>IP location by DB-IP.com<br>Tracker data: AdGuard companiesdb / WhoTracks.me<br>Threat data: Hagezi, abuse.ch</div>
+  <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
+  <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
 
 <dialog id="winDlg" aria-labelledby="winT">

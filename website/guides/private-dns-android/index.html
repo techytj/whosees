@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What is Private DNS on Android, and when should you turn it off?</title>
+<meta name="description" content="Private DNS on Android encrypts your phone&#x27;s website lookups. What it does, the three settings, how to change it on Samsung, Pixel and other phones, and how it affects WhoSees.">
+<link rel="canonical" href="https://whosees.app/guides/private-dns-android/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="WhoSees">
+<meta property="og:url" content="https://whosees.app/guides/private-dns-android/">
+<meta property="og:title" content="What is Private DNS on Android, and when should you turn it off?">
+<meta property="og:description" content="Private DNS on Android encrypts your phone&#x27;s website lookups. What it does, the three settings, how to change it on Samsung, Pixel and other phones, and how it affects WhoSees.">
+<meta property="og:image" content="https://whosees.app/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0b0d">
+<link rel="icon" href="/img/favicon.png">
+<link rel="apple-touch-icon" href="/img/icon.png">
+<link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css?v=4">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://whosees.app/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://whosees.app/guides/"},{"@type":"ListItem","position":3,"name":"What is Private DNS on Android?","item":"https://whosees.app/guides/private-dns-android/"}]},{"@context":"https://schema.org","@type":"Article","headline":"What is Private DNS on Android?","datePublished":"2026-11-15","dateModified":"2026-11-14","author":{"@type":"Person","name":"TechyTJ"},"publisher":{"@type":"Organization","name":"WhoSees","logo":{"@type":"ImageObject","url":"https://whosees.app/img/icon.png"}},"image":"https://whosees.app/img/og.png","mainEntityOfPage":"https://whosees.app/guides/private-dns-android/"}]</script>
+<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a>
+  <nav><a href="/#how">How it works</a><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="/guides/">Guides</a><a class="btn sm" href="/#get" data-umami-event="download-button" data-umami-event-where="top bar">Download</a></nav>
+</div></header>
+<main class="page"><div class="wrap">
+  <div class="crumbs mono"><a href="/">Home</a> / <a href="/guides/">Guides</a></div>
+  <div class="phead">
+    <div class="idx mono"><b>GUIDE</b></div>
+    <h1>What is Private DNS on Android?</h1>
+    <p class="lead">Private DNS keeps the names of the websites your phone looks up private from your Wi-Fi or mobile network. Here's what it does, how to change it, and when you might want to turn it off for a while.</p>
+    
+  </div>
+  <div class="doc"><article>
+<h2>What DNS is</h2>
+<p>Before an app can connect to a website, your phone has to look up its address, a bit like checking a phone book. That lookup is called <b>DNS</b>. Normally it isn't encrypted, so your Wi-Fi or mobile network can see every website name your phone looks up.</p>
+<h2>What Private DNS does</h2>
+<p><b>Private DNS</b> (available since Android 9) encrypts those lookups and sends them to a DNS provider you trust. Some providers, like AdGuard DNS, can also block known ad and tracking websites for every app on your phone.</p>
+<h2>The three settings</h2>
+<table><tr><th>SETTING</th><th>WHAT IT MEANS</th></tr>
+<tr><td>Off</td><td>Lookups aren't encrypted and go to your network's DNS.</td></tr>
+<tr><td>Automatic</td><td>The default on most phones. Encrypts lookups when your network's DNS supports it; otherwise works as normal.</td></tr>
+<tr><td>Private DNS provider hostname</td><td>Always uses the provider you name, for example <code>dns.google</code>, <code>one.one.one.one</code> or <code>dns.adguard-dns.com</code>.</td></tr></table>
+<h2>How to change it</h2>
+<ul>
+<li><b>Samsung:</b> Settings → Connections → More connection settings → Private DNS.</li>
+<li><b>Google Pixel and most other phones:</b> Settings → Network &amp; internet → Private DNS.</li>
+<li><b>Any phone:</b> open Settings and search for <b>Private DNS</b>.</li>
+</ul>
+<h2>Private DNS and WhoSees</h2>
+<p>When Private DNS is set to a named provider, website lookups are encrypted all the way to that provider, so <a href="/android/">WhoSees</a> can't read the website names. It still shows which app sent data, which company received it and where, because those come from the address each app connects to.</p>
+<div class="box"><b class="mono">FOR THE FULL PICTURE</b><p>Switch Private DNS to <b>Off</b> while you look, then switch it back on afterwards. WhoSees tells you when Private DNS is on, and reminds you to turn it back on when you press Stop.</p></div>
+<h2>Should you keep it on?</h2>
+<p>For everyday privacy, yes: encrypted lookups are better, and a blocking provider cuts down on trackers. Turning it off is only useful for the few minutes you want to see exactly which websites your apps visit.</p>
+  </article>
+  <aside class="side"><h4>GET WHOSEES</h4>
+  <a href="/android/">Android 10 and newer</a><a href="/windows/">Windows 10 and 11</a><a href="/linux/">Linux (any distribution)</a>
+  <h4 style="margin-top:20px">GUIDES</h4>
+  <a href="/guides/which-apps-are-tracking-me/">How to see which apps are tracking you</a><a href="/guides/private-dns-android/">What is Private DNS on Android?</a><a href="/privacy/">Privacy policy</a>
+  </aside>
+  </div>
+</div></main>
+<footer><div class="wrap">
+  <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
+  <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+</div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>
+</body>
+</html>
