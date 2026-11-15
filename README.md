@@ -65,6 +65,15 @@ The Windows build and tests run in a Windows VM over SSH. Copy `tools/local.env.
 - `shared/`: location, tracker and threat data builders, map fonts
 - `website/`: whosees.app
 
+## Code signing policy
+
+Windows installers are built automatically from this repository by GitHub Actions (`.github/workflows/windows.yml`), never on a personal computer. Free code signing for them is being set up with [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- **Committers and reviewers:** [TechyTJ](https://github.com/techytj)
+- **Approvers** (each signed release is approved by hand): [TechyTJ](https://github.com/techytj)
+
+**Privacy policy:** WhoSees will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Everything it shows is worked out on your own device. The only links that leave the app (the website, source code and "buy me a coffee") open in your browser when you click them.
+
 ## Licences
 
 WhoSees is free software under the GPL-3.0-or-later. In the app, Settings > About > Open-source licences lists every included component.

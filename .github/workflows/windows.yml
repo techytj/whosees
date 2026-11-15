@@ -1,0 +1,59 @@
+# Builds the Windows installer from this repository, so the published installer can be verified
+# (and code-signed) as an automated build of exactly this source.
+name: Windows installer
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  data:
+    name: Offline data (location, threats, map)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shared/geo/fetch_and_build.sh
+      - run: shared/threats/fetch_and_build.sh
+      - run: shared/map/fetch_and_build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shared-data
+          path: |
+            shared/geo/world.wtgeo
+            shared/threats/domains.txt
+            shared/threats/ips.txt
+            shared/map/world-z6.pmtiles
+          if-no-files-found: error
+  windows:
+    name: Windows installer
+    needs: data
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: shared-data
+          path: shared
+      - name: Build the agent (Rust)
+        working-directory: desktop/agent
+        run: cargo build --release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the installer
+        working-directory: desktop/app
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned here; signing is a separate, approved step
+        run: |
+          npm ci
+          npx electron-builder --win nsis --publish never
+      - name: Name it like the website expects
+        working-directory: desktop/app/dist
+        shell: pwsh
+        run: Get-ChildItem "WhoSees Setup *.exe" | Rename-Item -NewName "WhoSees-Windows-Setup.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WhoSees-Windows-Setup
+          path: desktop/app/dist/WhoSees-Windows-Setup.exe
+          if-no-files-found: error
