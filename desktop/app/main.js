@@ -331,6 +331,7 @@ ipcMain.handle('update:check', () => new Promise((resolve) => {
 }));
 ipcMain.handle('app:info', () => ({
   version: app.getVersion(), platform: process.platform, user: require('node:os').userInfo().username,
+  exe: process.execPath, // so the UI can recognise WhoSees's own traffic (the same path the agent gets as --self-exe)
   agent: fs.existsSync(AGENT), geo: fs.existsSync(GEO), tiles: fs.existsSync(TILES),
 }));
 

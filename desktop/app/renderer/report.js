@@ -4,6 +4,8 @@
 import { CATEGORIES, TRACKING, bytes, countryName, placeName } from './model.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// a web address as printable text (no link: the report loads and links nothing), breaking only after slashes
+const urlText = (u) => esc(String(u || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')).replace(/\//g, '/<wbr>');
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 const pct = (a, b) => (b > 0 ? Math.round((100 * a) / b) : 0);
 const CAT_COLOR = { tracker: '#ff5c7a', ads: '#ffb547', analytics: '#ff8a4c', social: '#f472d0', messaging: '#4ade80',
@@ -319,7 +321,7 @@ export function buildReport(s, ctx) {
     ${r.apps.map((x) => `<tr><td><b>${esc(x.a.name)}</b>${x.local ? ' <span class="muted">(local network only)</span>' : ''}</td><td>${x.local ? '–' : gradeTag(x.grade)}</td><td class="n">${bytes(x.a.sent)}</td><td class="n">${bytes(x.a.recv)}</td><td class="n">${x.owners.length}</td><td class="n">${x.countries.length}</td><td class="n${x.trackers.length ? ' hot' : ''}">${x.trackers.length}</td><td class="n${x.unenc ? ' hot' : ''}">${x.unenc}</td></tr>`).join('')}
     </tbody></table>
     ${netApps.map((x) => {
-      const d = x.data, kinds = [...d.seen.map((k) => ['seen', k]), ...d.could.map((k) => ['could', k]), ...d.likely.map((k) => ['likely', k])];
+      const d = x.data, kinds = [...d.seen.map((k) => ['seen', k]), ...d.could.map((k) => ['could', k]), ...d.likely.filter((k) => !k.service).map((k) => ['likely', k]), ...(d.services || []).map((sv) => ['likely', { label: sv.name }])];
       return `<article class="card">
         <header><h3>${esc(x.a.name)}</h3>${gradeTag(x.grade)}<span class="spacer"></span><span class="mono">${bytes(x.a.sent)} sent · ${bytes(x.a.recv)} received · ${plural(x.nNet, 'connection')}</span></header>
         ${x.a.exe ? `<p class="path">${esc(x.a.exe)}</p>` : ''}
@@ -349,10 +351,16 @@ export function buildReport(s, ctx) {
       ${r.trackers.map((t) => `<tr><td><b>${esc(t.name)}</b></td><td>${chip(t.cat)}</td><td>${esc([...t.apps.keys()].join(', '))}</td><td class="sub">${esc([...t.sites.keys()].filter(Boolean).slice(0, 4).join(', ') || '–')}</td><td class="n">${t.n}</td></tr>`).join('')}
       </tbody></table>` : `<p class="okline">No known tracking or advertising companies were contacted during this live view.</p>`}`;
 
+  const generic = r.data.likely.filter((d) => !d.service), svcs = r.data.services || [], ctls = r.data.controls || [];
   const dataSec = r.data.seen.length + r.data.likely.length + r.data.could.length ? `${sec('data', 'What kinds of data went out')}
     ${r.data.seen.length ? `<h3>Seen in readable traffic</h3><ul class="kv">${r.data.seen.map((d) => `<li><span><b>${esc(d.label)}</b>${d.details.size ? ` <span class="sub">${esc([...d.details].slice(0, 3).join(' · '))}</span>` : ''}</span><span>${plural(d.count, 'time')}</span></li>`).join('')}</ul>` : ''}
     ${r.data.could.length ? `<h3>Could include</h3><ul class="kv">${r.data.could.map((d) => `<li><span>${esc(d.label)}</span></li>`).join('')}</ul>` : ''}
-    ${r.data.likely.length ? `<h3>Likely, based on who received it</h3><ul class="kv">${r.data.likely.map((d) => `<li><span>${esc(d.label)}</span><span>${plural(d.count, 'connection')}</span></li>`).join('')}</ul>` : ''}` : '';
+    ${generic.length ? `<h3>Likely, based on who received it</h3><ul class="kv">${generic.map((d) => `<li><span>${esc(d.label)}</span><span>${plural(d.count, 'connection')}</span></li>`).join('')}</ul>` : ''}
+    ${svcs.length ? `<h3>Known services</h3><p class="intro">What each service says it is built to collect, from its own documentation. The traffic was encrypted, so this is what it is designed to receive, not a reading of it.</p>
+      <table class="t"><thead><tr><th>Service</th><th>Built to collect</th><th class="n">Connections</th></tr></thead><tbody>
+      ${svcs.map((v) => `<tr><td><b>${esc(v.name)}</b>${v.owner ? `<br><span class="sub">${esc(v.owner)}</span>` : ''}<br><span class="url">${urlText(v.src)}</span></td><td>${esc(v.sends.join('; '))}</td><td class="n">${v.conns}</td></tr>`).join('')}
+      </tbody></table>` : ''}
+    ${ctls.length ? `<h3>What you can do</h3><ul class="kv ctl">${ctls.map((c) => `<li><span><b>${esc(c.label)}</b>${c.owner ? ` <span class="own">${esc(c.owner)}</span>` : ''}${c.how ? `<br><span class="how">${esc(c.how)}</span>` : ''}</span><span class="url">${c.url ? urlText(c.url) : ''}</span></li>`).join('')}</ul>` : ''}` : '';
 
   const plainSec = r.plain.length ? `${sec('unencrypted', 'Unencrypted connections', 'Traffic that anyone on the way (public Wi-Fi, your internet provider) could read or change.')}
     <table class="t"><thead><tr><th>Time</th><th>App</th><th>Website or address</th><th>Company</th><th>Type</th><th class="n">Sent</th></tr></thead><tbody>
@@ -433,7 +441,7 @@ table.t{width:100%;border-collapse:collapse;margin:2mm 0 5mm;font-size:8.2pt}
 .card header{display:flex;align-items:center;gap:8px}.card h3{margin:0;font-size:12pt}.spacer{flex:1}.card header .mono{font-size:7.5pt;color:var(--text2)}
 .path{font-size:7pt;color:var(--text3);margin:1mm 0 0;word-break:break-all}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.cols p{margin:0;font-size:8.4pt;color:var(--text2)}
-ul.kv{list-style:none;padding:0;margin:0}ul.kv li{display:flex;justify-content:space-between;gap:8px;padding:.8mm 0;border-bottom:1px dotted var(--line);font-size:8.4pt}
+ul.kv{list-style:none;padding:0;margin:0}ul.kv.ctl li{align-items:baseline;break-inside:avoid}ul.kv.ctl li span.how{font-family:inherit;font-size:8pt;color:var(--text2);white-space:normal}ul.kv.ctl li span.own{font:400 7pt "Plex Mono",monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-left:4px}.url{font:7pt "Plex Mono",monospace;color:var(--text3);word-break:normal;overflow-wrap:normal}ul.kv.ctl li span.url{font:400 7pt "Plex Mono",monospace;white-space:normal;text-align:right;max-width:60%;color:var(--text3)}ul.kv li{display:flex;justify-content:space-between;gap:8px;padding:.8mm 0;border-bottom:1px dotted var(--line);font-size:8.4pt}
 ul.kv li span:last-child{font-family:"Plex Mono";font-size:7.6pt;color:var(--text2);white-space:nowrap}ul.kv li.more{color:var(--text3);border:0}
 i.tr{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5c7a;margin-right:5px}
 .kinds{display:flex;flex-wrap:wrap;gap:4px;margin:0}.dk{font:400 7.4pt "Plex Mono";padding:.5mm 1.8mm;border:1px solid var(--line2);color:var(--text2)}

@@ -22,7 +22,7 @@ const session = new Session();
 let map, flows;
 window.__wt = { session, get map() { return map; }, get flows() { return flows; },
   reloadSettings: async () => { state.settings = await wt.getSettings(); render(true); if (state.view) renderDetail(); },
-  saveReport: (o) => saveReport(o), openReport: () => openReport() }; // for automated UI checks
+  saveReport: (o) => saveReport(o), openReport: () => openReport(), get selfExe() { return state.selfExe; } }; // for automated UI checks
 
 // ---------- boot ----------
 (async function boot() {
@@ -41,6 +41,7 @@ window.__wt = { session, get map() { return map; }, get flows() { return flows; 
 
   const info = await wt.info();
   state.user = info.user; state.version = info.version || '0.0.0';
+  state.selfExe = info.exe || '';
   if (!info.agent) toast('Capture agent missing — build it with cargo build --release');
 
   await endSessionBlocks(); // left over if WhoSees was closed during a live view
@@ -553,6 +554,7 @@ function renderDetail() {
     el.innerHTML = `${backBtn()}
       <div class="dhead">${iconHtml(a)}<div><h2>${esc(a.name)}</h2><p>${a.system ? 'System process' : 'App'}${state.mode === 'expert' && a.exe ? ` · <span class="mono">${esc(a.exe)}</span>` : ''}</p></div></div>
       <div class="sentence">${sentence}</div>
+      ${isSelfApp(a) ? selfNote() : ''}
       ${appBlockBox(a)}
       ${dataSection([...a.conns], 'What this app sent')}
       ${privacyReport(a, places)}
@@ -597,8 +599,20 @@ function renderDetail() {
 // Whole-app blocking: Windows (by program path) and Android (by app user id).
 const appRule = (a) => wt.platform === 'win32' && a.exe ? { kind: 'app', value: a.exe } : wt.platform === 'android' && a.uid >= 10000 ? { kind: 'uid', value: String(a.uid) } : null;
 const isBlockedApp = (a) => { const r = appRule(a); return !!r && rules().some((x) => x.kind === r.kind && x.value.toLowerCase() === r.value.toLowerCase()); };
+// WhoSees's own traffic: the agent matches it by program path (--self-exe) and never flags it.
+function isSelfApp(a) {
+  const norm = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
+  return !!(a && a.exe && state.selfExe && norm(a.exe) === norm(state.selfExe));
+}
+function selfNote() {
+  if (!state.settings.updateCheck) return '<div class="note self">This is WhoSees itself. Its own connections are shown like any other app’s, so you can see everything it does.</div>';
+  return `<div class="note self"><b>This is WhoSees checking for updates.</b> Update checks are on in Settings, so once a day it asks
+    whosees.app for the newest version number. whosees.app sees your internet address, nothing else. The place shown is
+    Cloudflare’s nearest server, which whosees.app is served through. To stop this, turn off update checks in Settings.</div>`;
+}
+
 function appBlockBox(a) {
-  if (!FEATURES.blocking) return '';
+  if (!FEATURES.blocking || isSelfApp(a)) return '';
   const r = appRule(a);
   if (!r || a.system) return '';
   if (isBlockedApp(a)) return `<div class="blockbox on"><div><b>${session.blocking ? 'Blocked from the internet' : 'On your block list'}</b><small>${blockingLive() ? 'WhoSees is stopping this app' : session.blocking ? 'Blocked during this live view' : state.running || session.started ? 'Not blocked in this live view: blocking needs Deep mode' : wt.platform === 'android' ? 'applies while a live view is on' : 'applies during a Deep mode live view'}</small></div>
@@ -790,20 +804,38 @@ function dataChips(list, cls) {
 }
 function dataSection(ids, title) {
   const d = session.dataFor(ids);
+  const generic = d.likely.filter((x) => !x.service);
   const n = d.seen.length + d.likely.length + d.could.length;
-  if (!n) return '';
-  return `<div class="sec">${esc(title)}</div><div class="dataset">
+  if (!n && !d.controls.length) return '';
+  return `${n ? `<div class="sec">${esc(title)}</div><div class="dataset">
     ${d.seen.length ? `<div class="drow"><label>Seen</label><div>${dataChips(d.seen, 'seen')}</div></div>` : ''}
     ${d.could.length ? `<div class="drow"><label>Could include</label><div>${dataChips(d.could, 'could')}</div></div>` : ''}
-    ${d.likely.length ? `<div class="drow"><label>Likely</label><div>${dataChips(d.likely, 'likely')}</div></div>` : ''}
-    <p class="dnote"><b>Seen</b>: read in unencrypted traffic. <b>Likely</b>: what this kind of company usually receives (the traffic is encrypted, so the contents can't be read).${d.could.length ? ' <b>Could include</b>: the app is allowed to read this and talks to ad or tracking companies.' : ''}</p></div>`;
+    ${generic.length ? `<div class="drow"><label>Likely</label><div>${dataChips(generic, 'likely')}</div></div>` : ''}
+    ${d.services.map(serviceCard).join('')}
+    <p class="dnote"><b>Seen</b>: read in unencrypted traffic. <b>Likely</b>: what this kind of company usually receives (the traffic is encrypted, so the contents can't be read).${d.services.length ? ' <b>Known services</b>: what the service says it is built to collect, from its own documentation.' : ''}${d.could.length ? ' <b>Could include</b>: the app is allowed to read this and talks to ad or tracking companies.' : ''}</p></div>` : ''}
+    ${controlsSection(d.controls)}`;
+}
+const srcHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+function serviceCard(p) {
+  return `<div class="svc"><div class="svc-h"><b>${esc(p.name)}</b>${p.owner ? `<span>${esc(p.owner)}</span>` : ''}<label>Likely</label></div>
+    <p>${esc(p.what)}</p>
+    <div class="svc-sends">${p.sends.map((x) => `<span class="dchip likely">${esc(x)}</span>`).join('')}</div>
+    <a class="svc-src" href="${esc(p.src)}" target="_blank" rel="noopener">Source: ${esc(srcHost(p.src))}</a></div>`;
+}
+function controlsSection(list) {
+  if (!list.length) return '';
+  return `<div class="sec">What you can do</div><div class="controls">${list.map((c) => `<div class="ctl">
+    <div><b>${esc(c.label)}</b>${c.how ? `<small>${esc(c.how)}</small>` : ''}${c.owner ? `<small class="ctl-o">${esc(c.owner)}</small>` : ''}</div>
+    ${c.url ? `<a class="ghost sm" href="${esc(c.url)}" target="_blank" rel="noopener">${c.how ? 'How' : 'Open'}</a>` : ''}</div>`).join('')}</div>`;
 }
 function tipData(p) {
   const d = session.dataFor([...p.conns]);
   const n = d.seen.length + d.likely.length;
   if (!n) return '';
   const s = d.seen.length ? `<span style="color:var(--warn)">Seen: ${esc(d.seen.slice(0, 2).map((x) => x.label).join(', '))}</span>` : '';
-  const l = d.likely.length ? `Likely: ${esc(d.likely.slice(0, 2).map((x) => x.label).join(', '))}` : '';
+  // known services are named (their own lists are in the detail panel); otherwise the category guess
+  const l = d.services.length ? `Known services: ${esc(d.services.slice(0, 2).map((x) => x.name).join(', '))}`
+    : d.likely.length ? `Likely: ${esc(d.likely.slice(0, 2).map((x) => x.label).join(', '))}` : '';
   return `<div class="tip-where" style="margin-top:4px">${[s, l].filter(Boolean).join(' · ')}</div>`;
 }
 function privacyReport(a, places) {

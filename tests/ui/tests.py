@@ -13,6 +13,25 @@ def agents():
     r = subprocess.run(['pgrep', '-x', 'whosees-agent'], capture_output=True, text=True)
     return set(r.stdout.split())
 
+# Known services: fake three connections to documented services on the busiest internet app, then open it.
+SERVICES_JS = """
+  var a = [...W.session.apps.values()].filter((x) => [...x.conns].some((id) => W.session.conns.get(id)?.scope === 'internet')).sort((x, y) => y.conns.size - x.conns.size)[0];
+  var base = a && W.session.conns.get([...a.conns].find((id) => W.session.conns.get(id)?.scope === 'internet'));
+  if (base) {
+    W.session.ingest([['app-measurement.com', 'analytics', 'Google'], ['graph.facebook.com', 'social', 'Meta'], ['stats.g.doubleclick.net', 'ads', 'Google']]
+      .map((h, i) => ({ ...base, t: 'open', id: 'svc-test-' + i, host: h[0], site: h[0], category: h[1], owner: h[2], data: [] })));
+    document.querySelector('[data-tab=apps]').click();
+    document.querySelector('#list .row[data-app="' + CSS.escape(a.id) + '"]').click();
+    var cards = [...document.querySelectorAll('#detail .svc')], right = $('#detail').getBoundingClientRect().right + 1;
+    CHECK('known-service-cards', cards.length >= 3, cards.map((c) => c.querySelector('b').innerText));
+    CHECK('service-cards-name-sources', cards.every((c) => /^https:/.test(c.querySelector('.svc-src')?.href || '')), '');
+    CHECK('what-you-can-do-listed', /My Ad Center/.test($('#detail .controls')?.innerText || '') && /off Meta/.test($('#detail .controls').innerText), ($('#detail .controls') || {}).innerText);
+    CHECK('service-cards-fit-panel', [...document.querySelectorAll('#detail .svc, #detail .ctl')].every((x) => x.getBoundingClientRect().right <= right), right);
+    CHECK('no-horizontal-scroll-with-cards', document.documentElement.scrollWidth <= innerWidth, document.documentElement.scrollWidth);
+    cards[0]?.scrollIntoView({ block: 'start' });
+  } else CHECK('known-service-cards', false, 'no internet app to attach to');
+"""
+
 # ---------- A. Standard mode, wide window ----------
 before = agents()
 results += driver.run(out, 'wide', [
@@ -36,6 +55,18 @@ results += driver.run(out, 'wide', [
         CHECK('hover-card-shows', !$('#tip').hidden && getComputedStyle($('#tip')).display !== 'none', '');
         CHECK('hover-card-has-city', $('#tip').innerText.length > 5 && !!$('.tip-city'), $('#tip').innerText);
         CHECK('hover-card-lists-app', !!$('.tip-app'), $('#tip').innerText);
+      }
+      // WhoSees's own traffic (e.g. the update check) is explained in its detail panel, with no block button
+      var row = document.querySelector('#list .row[data-app]'), sa = row && W.session.apps.get(row.dataset.app);
+      CHECK('self-check-has-own-path', !!W.selfExe, W.selfExe);
+      if (sa) {
+        var oldExe = sa.exe; sa.exe = W.selfExe; row.click();
+        CHECK('self-traffic-explained', !!$('#detail .note.self') && /WhoSees/.test($('#detail .note.self').innerText), $('#detail').innerText.slice(0, 160));
+        CHECK('self-has-no-block-button', !$('#detail [data-block-kind]'), '');
+        sa.exe = oldExe; $('#detail [data-back]').click();
+        var other = document.querySelector('#list .row[data-app]'); other.click();
+        CHECK('other-apps-have-no-self-note', !$('#detail .note.self'), $('#detail .note.self')?.innerText);
+        $('#detail [data-back]').click();
       }
     """),
     ('tabs', 12500, """
@@ -156,6 +187,8 @@ results += driver.run(out, 'premium', [
       $('#noticesClose').click();
       CHECK('licences-close', !$('#dlg').open, '');
     """),
+    ('services', 1000, SERVICES_JS),
+    ('services-steps', 500, "$('#detail .controls')?.scrollIntoView({ block: 'end' });"),
     ('coffee', 1000, """
       CHECK('coffee-button-next-to-settings', !!$('#coffeeBtn') && $('#coffeeBtn').nextElementSibling === $('#settingsBtn') && $('#coffeeBtn').getBoundingClientRect().width > 0, '');
       $('#coffeeBtn').click();
@@ -221,6 +254,8 @@ results += driver.run(out, 'narrow', [
               'hit ' + hit.tagName + '#' + hit.id + '.' + hit.className + ' at ' + Math.round(d.g.b.x) + ',' + Math.round(d.g.b.y) + ' dot ' + (d.key || d.g.key || ''));
       } else CHECK('hover-card-in-narrow-window', true, 'no dot on screen; skipped');
     """),
+    ('services', 1000, SERVICES_JS),
+    ('services-steps', 500, "$('#detail .controls')?.scrollIntoView({ block: 'end' });"),
 ], {'theme': 'light', 'home': HOME}, display='wt-phone', size=(390, 844))
 results.append(('narrow: no-page-errors', not driver.page_errors(out, 'narrow'), driver.page_errors(out, 'narrow')))
 

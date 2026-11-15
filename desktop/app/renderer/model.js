@@ -1,4 +1,5 @@
 // Session state: connections from the agent, rolled up by app and by place.
+import { profileFor, controlsFor } from './profiles.js';
 
 export const CATEGORIES = {
   tracker:   { label: 'Tracker',   plain: 'a tracking company' },
@@ -13,6 +14,8 @@ export const CATEGORIES = {
   local:     { label: 'Local',     plain: 'a device on your network' },
 };
 export const TRACKING = new Set(['tracker', 'ads', 'analytics']);
+// generic "likely" items that still apply when a service profile is known
+const GENERIC_KEEP = new Set(['unencrypted', 'website-names', 'time', 'email', 'calls']);
 
 const regionNames = (() => { try { return new Intl.DisplayNames(['en'], { type: 'region' }); } catch { return null; } })();
 export const countryName = (cc) => { try { return (cc && regionNames?.of(cc)) || cc || 'Unknown'; } catch { return cc || 'Unknown'; } };
@@ -39,7 +42,7 @@ export function placeName(g) {
 }
 
 export class Session {
-  constructor() { this.reset(); }
+  constructor() { this.platform = globalThis.wt?.platform || ''; this.reset(); }
 
   reset() {
     this.conns = new Map();   // id -> conn
@@ -239,13 +242,24 @@ export class Session {
    *  could  - Android: the app holds a permission (e.g. location) and talks to ad/tracking companies
    */
   dataFor(ids) {
-    const seen = new Map(), likely = new Map(), could = new Map();
+    const seen = new Map(), likely = new Map(), could = new Map(), services = new Map();
     const PERM = { location: 'Your location', contacts: 'Your contacts', camera: 'Photos or video from the camera', microphone: 'Audio from the microphone',
       phone: 'Phone number and device IDs', calls: 'Your call history', sms: 'Your text messages', calendar: 'Your calendar',
       photos: 'Your photos and videos', health: 'Health and fitness data', activity: 'Your physical activity' };
     for (const id of ids) {
       const c = this.conns.get(id); if (!c) continue;
+      // a known service: its own documented list replaces the guess from the kind of company
+      const prof = profileFor(c.host, this.platform, c.app?.name);
+      if (prof) {
+        const sp = services.get(prof.id) || { ...prof, conns: 0 };
+        sp.conns++; services.set(prof.id, sp);
+        prof.sends.forEach((label, i) => {
+          const k = `${prof.id}:${i}`, x = likely.get(k) || { kind: k, label, details: new Set([prof.name]), count: 0, service: prof.id };
+          x.count++; likely.set(k, x);
+        });
+      }
       for (const d of c.data || []) {
+        if (prof && d.basis !== 'seen' && !GENERIC_KEEP.has(d.kind)) continue;
         const m = d.basis === 'seen' ? seen : likely;
         const x = m.get(d.kind) || { kind: d.kind, label: d.label, details: new Set(), count: 0 };
         x.count++; if (d.detail) x.details.add(d.detail);
@@ -257,7 +271,26 @@ export class Session {
       }
     }
     for (const k of seen.keys()) likely.delete(k); // seen beats likely
-    return { seen: [...seen.values()], likely: [...likely.values()], could: [...could.values()] };
+    const profs = [...services.values()];
+    return { seen: [...seen.values()], likely: [...likely.values()], could: [...could.values()], services: profs,
+      controls: this.controlsFor(ids, profs) };
+  }
+
+  /** "What you can do": steps for the companies these connections reached. */
+  controlsFor(ids, profs = []) {
+    const out = [], have = new Set(), owners = new Map();
+    for (const id of ids) {
+      const c = this.conns.get(id);
+      if (c?.owner && c.scope === 'internet') {
+        const o = owners.get(c.owner) || { ads: false };
+        o.ads ||= TRACKING.has(c.category); owners.set(c.owner, o);
+      }
+    }
+    for (const p of profs) if (p.owner && !owners.has(p.owner)) owners.set(p.owner, { ads: false });
+    const add = (owner, list) => { for (const c of list) if (!have.has(c.label)) { have.add(c.label); out.push({ ...c, owner }); } };
+    for (const p of profs) add(p.owner, controlsFor(p.owner, [p], this.platform, false));
+    for (const [owner, o] of owners) add(owner, controlsFor(owner, [], this.platform, o.ads));
+    return out;
   }
 
   topSites(m, n = 3) { return [...(m || new Map()).entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map((x) => x[0]); }

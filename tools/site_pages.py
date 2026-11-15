@@ -17,7 +17,7 @@ NAV = ('<a href="/#how">How it works</a><a href="/android/">Android</a><a href="
 FOOTER = '''<footer><div class="wrap">
   <div><a class="logo" href="/"><img src="/img/icon.png" alt="">WhoSees</a><p style="margin-top:14px;max-width:34ch">See which apps share your data, with which companies, and where. Free, open source, and private by design.</p></div>
   <div class="mono"><h4>GET WHOSEES</h4><div class="flinks" style="flex-direction:column"><a href="/android/">Android</a><a href="/windows/">Windows</a><a href="/linux/">Linux</a><a href="https://github.com/techytj/whosees/releases">All releases</a></div></div>
-  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#code-signing-policy">Code signing policy</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
+  <div class="mono"><h4>LEARN</h4><div class="flinks" style="flex-direction:column"><a href="/guide/">User guide</a><a href="/guides/which-apps-are-tracking-me/">Which apps are tracking me?</a><a href="/guides/private-dns-android/">Private DNS on Android</a><a href="/privacy/">Privacy policy</a><a href="https://github.com/techytj/whosees#windows-installer">How the installer is built</a><a href="https://github.com/techytj/whosees">Source code</a></div></div>
 </div><div class="wrap"><div class="huge" aria-hidden="true">WHOSEES</div></div></footer>'''
 
 
@@ -105,7 +105,7 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 
 def app_ld(os_name, file):
     return {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": f"WhoSees for {os_name}",
-            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.2.0",
+            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.3.0",
             "downloadUrl": REL + file, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
             "license": "https://www.gnu.org/licenses/gpl-3.0.html", "url": SITE + '/',
             "author": {"@type": "Person", "name": "TechyTJ", "url": "https://github.com/techytj"}}
@@ -242,7 +242,7 @@ pages.append(page('android/', 'WhoSees for Android: see which apps are tracking 
 
 # ---------------------------------------------------------------- Windows
 win_faq = [
-    ("Why does Windows say 'Windows protected your PC'?", "Windows shows this for new programs that aren't code-signed yet. It doesn't mean anything is wrong with WhoSees. Click More info, then Run anyway. WhoSees has applied for free code signing from the SignPath Foundation."),
+    ("Why does Windows say 'Windows protected your PC'?", "Windows shows this for new programs that aren't code-signed yet. It doesn't mean anything is wrong with WhoSees. Click More info, then Run anyway. To check your download, compare it with SHA256SUMS.txt on the release page."),
     ("Can WhoSees block apps or trackers?", "Yes, while a live view runs: tap Block on an app, a company, a website or a country, or switch on Block all trackers and ads. Blocks end when you press Stop unless you choose Keep. On Android nothing else is needed."),
     ("Does WhoSees read my traffic?", "It reads where your data goes, never what's inside it. Almost all traffic is encrypted, and WhoSees doesn't open it."),
 ]
@@ -259,7 +259,7 @@ pages.append(page('windows/', 'WhoSees for Windows: see which apps send your dat
 <li>Choose where to install it and click <b>Install</b>.</li>
 <li>Open WhoSees from the Start menu and click <b>Start live view</b>.</li>
 </ol>
-<div class="box"><b class="mono">WHY WINDOWS WARNS YOU</b><p>Windows shows that warning for any new program that isn't <i>code-signed</i> yet, meaning it doesn't carry a digital signature proving who published it. It doesn't mean anything is wrong with WhoSees. WhoSees has applied for free code signing from the <a href="https://signpath.org">SignPath Foundation</a>; once approved, the installer will be signed and the warning fades as more people install it.</p></div>
+<div class="box"><b class="mono">WHY WINDOWS WARNS YOU</b><p>Windows shows that warning for any new program that isn't <i>code-signed</i> yet, meaning it doesn't carry a digital signature proving who published it. It doesn't mean anything is wrong with WhoSees. The installer isn't signed: a signing certificate costs hundreds of dollars a year, and WhoSees is free. It's built by GitHub from the public source code, and you can check your download against SHA256SUMS.txt on the release page.</p></div>
 <h2>Standard and Deep mode</h2>
 <table><tr><th>MODE</th><th>WHAT IT DOES</th></tr>
 <tr><td>Standard</td><td>No administrator rights needed. Shows apps, companies and places from Windows' own connection list.</td></tr>

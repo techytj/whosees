@@ -412,3 +412,22 @@ body.android .panel { padding-bottom: env(safe-area-inset-bottom); }
 /* blocking */
 .row.track-all { border: 1px solid var(--line); margin: 0 6px 8px; cursor: default; }
 .ghost.sm.keep.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* ---------- known services + what you can do ---------- */
+.svc { margin: 10px 0 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 2px; background: var(--panel); }
+.svc-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.svc-h b { font-size: 13.5px; font-weight: 640; }
+.svc-h span { font-size: 12px; color: var(--text-3); }
+.svc-h label { margin-left: auto; font: 400 10px var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); }
+.svc p { margin: 4px 0 8px; font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+.svc-sends { display: flex; flex-wrap: wrap; gap: 6px; }
+.svc-src { display: inline-block; margin-top: 8px; font: 400 11px var(--mono); color: var(--text-3); text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.svc-src:hover { color: var(--accent); border-color: var(--accent); }
+.controls { margin: 0 6px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ctl { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 2px; background: var(--panel-2); border: 1px solid var(--line); }
+.ctl > div { flex: 1; min-width: 0; }
+.ctl b { display: block; font-size: 13px; font-weight: 600; }
+.ctl small { display: block; font-size: 12px; color: var(--text-2); margin-top: 2px; overflow-wrap: anywhere; }
+.ctl small.ctl-o { color: var(--text-3); font: 400 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+.ctl a { flex: none; text-decoration: none; }
+.ctl a.ghost { display: inline-flex; align-items: center; }

@@ -82,7 +82,10 @@ results = driver.run(out, 'deep', [
         document.querySelector('[data-tab=places]').click();
         document.querySelector('#list .row[data-place="' + CSS.escape(g.key) + '"]').click();
         CHECK('premium-shows-seen-location', $('#detail .dchip.seen') && $('#detail').textContent.includes('Your location'), $('#detail').textContent.slice(0, 300));
-        CHECK('premium-shows-likely-advertising-id', $('#detail').textContent.includes('Advertising ID'), $('#detail').textContent.slice(0, 300));
+        // a known ad service: Google's documented list (which includes the advertising ID) replaces the generic guess
+        var svc = [...document.querySelectorAll('#detail .svc')].find((x) => x.innerText.includes('Google advertising'));
+        CHECK('premium-shows-known-ad-service', !!svc && /advertising ID/i.test(svc.innerText), $('#detail').innerText.slice(0, 600));
+        CHECK('ad-service-offers-steps', /My Ad Center/.test(($('#detail .controls') || {}).innerText || ''), '');
         CHECK('place-offers-block-all-trackers', !!document.querySelector('#detail [data-block-kind=category]'), '');
       }
     """),

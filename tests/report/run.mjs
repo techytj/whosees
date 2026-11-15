@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-report-'));
-for (const f of ['model.js', 'report.js']) fs.copyFileSync(path.join(ROOT, 'desktop/app/renderer', f), path.join(tmp, f));
+for (const f of ['model.js', 'report.js', 'profiles.js']) fs.copyFileSync(path.join(ROOT, 'desktop/app/renderer', f), path.join(tmp, f));
 fs.writeFileSync(path.join(tmp, 'package.json'), '{"type":"module"}');
 const { Session } = await import(pathToFileURL(path.join(tmp, 'model.js')));
 const R = await import(pathToFileURL(path.join(tmp, 'report.js')));
@@ -113,6 +113,25 @@ const s4 = session({ n: R.MAX_ROWS + 50 });
 const t4 = text(R.buildReport(s4, { platform: 'win32', theme: 'dark', paper: 'letter', home: HOME }));
 check('long live view: connection list capped with a note', t4.includes(`the ${R.MAX_ROWS} most recent are listed`), '');
 check('Windows wording', t4.includes('Windows computer'), '');
+
+// ---- known services: documented lists replace the category guess, with sources and what-you-can-do steps
+{
+  const s5 = session({ n: 8 });
+  const d = s5.dataFor([...s5.conns.keys()]);
+  const ids = d.services.map((x) => x.id);
+  check('services: Google Analytics and Meta SDK recognised', ids.includes('google-analytics') && ids.includes('meta-app-events'), ids);
+  check('services: every one names its source', d.services.every((x) => /^https:\/\//.test(x.src)), '');
+  check('services: Google and Meta steps offered', d.controls.some((c) => c.owner === 'Google') && d.controls.some((c) => c.owner === 'Meta'), d.controls.map((c) => c.label));
+  check('services: Android-only step hidden on Linux', !d.controls.some((c) => /advertising ID/.test(c.label)), d.controls.map((c) => c.label));
+  const t5 = text(R.buildReport(s5, { platform: 'linux', theme: 'dark', paper: 'letter', home: HOME }));
+  check('report lists known services with sources', t5.includes('Known services') && t5.includes('support.google.com/') && t5.includes('What you can do'), '');
+  const P = await import(pathToFileURL(path.join(tmp, 'profiles.js')));
+  check('profiles: suffix and exact matching', P.profileFor('region1.app-measurement.com', 'linux')?.id === 'firebase-analytics' && P.profileFor('graph.facebook.com')?.id === 'meta-app-events'
+    && !P.profileFor('www.facebook.com') && P.profileFor('android.clients.google.com', 'linux') === null && P.profileFor('android.clients.google.com', 'android')?.id === 'android-checkin', '');
+  check('profiles: connection check only for NetworkManager', P.profileFor('fedoraproject.org', 'linux', 'NetworkManager')?.id === 'nm-connectivity'
+    && !P.profileFor('fedoraproject.org', 'linux', 'firefox'), '');
+  check('profiles: no lookalike match', !P.profileFor('notdoubleclick.net') && P.profileFor('stats.g.doubleclick.net')?.id === 'google-ads', '');
+}
 
 // ---- helpers
 check('file name has date and time', /^WhoSees report \d{4}-\d\d-\d\d \d{4}\.pdf$/.test(R.reportFileName()), R.reportFileName());
