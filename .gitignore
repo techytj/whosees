@@ -1,0 +1,16 @@
+shared/geo/.cache/
+shared/geo/world.wtgeo
+shared/map/*.pmtiles
+node_modules/
+target/
+dist/
+tools/.vmkey.txt
+tools/.vmkey2.txt
+shared/threats/domains.txt
+shared/threats/ips.txt
+tools/local.env
+__pycache__/
+*.pyc
+android/keystore.properties
+*.jks
+*.keystore

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' wt:; script-src 'self' wt: 'sha256-IPdh0zVgWDhUoeN8uF0A6/mCL3RZDf2erNEdgAoVSKw='; worker-src 'self' wt: blob:; img-src 'self' wt: data: blob:; style-src 'self' wt: 'unsafe-inline'; font-src 'self' wt:; connect-src 'self' wt:">
+  <title>WhoSees</title>
+  <link rel="stylesheet" href="../node_modules/maplibre-gl/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    { "imports": {
+        "fflate": "../node_modules/fflate/esm/browser.js",
+        "maplibre-gl": "../node_modules/maplibre-gl/dist/maplibre-gl.mjs",
+        "pmtiles": "../node_modules/pmtiles/dist/esm/index.js",
+        "@protomaps/basemaps": "../node_modules/@protomaps/basemaps/dist/esm/index.js"
+    } }
+  </script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="flows"></canvas>
+  <div class="vignette"></div>
+
+  <!-- title bar -->
+  <header class="titlebar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M8 24 C 9.5 15, 16 10, 22.5 10.6" fill="none" stroke="var(--text)" stroke-width="2"/>
+        <circle cx="8" cy="24" r="3.6" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+        <path d="M8 18.4v-1.6M8 29.6v1.6M2.4 24H0.8M13.6 24h1.6" stroke="var(--accent)" stroke-width="1.6"/>
+        <rect x="6.8" y="22.8" width="2.4" height="2.4" fill="var(--accent)" stroke="none"/>
+        <rect x="21" y="8.2" width="5" height="5" fill="var(--accent)" stroke="none"/>
+      </svg>
+      <span class="name">WhoSees</span>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Ready</span></div>
+    <button class="alert-badge" id="alertBadge" hidden><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span></span></button>
+    <div class="actions">
+      <div class="seg" id="modeSeg" role="tablist" aria-label="Detail level">
+        <button data-mode="simple" class="on">Simple</button>
+        <button data-mode="expert">Expert</button>
+      </div>
+      <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- live stats -->
+  <section class="stats" id="stats" aria-label="Live totals">
+    <div class="stat"><label>Sending now</label><strong id="sRate">0 B/s</strong><canvas class="spark" id="spark" width="120" height="28"></canvas></div>
+    <div class="stat"><label>Sent this session</label><strong id="sSent">0 B</strong></div>
+    <div class="stat"><label>Places</label><strong id="sPlaces">0</strong><small id="sCountries">0 countries</small></div>
+    <div class="stat warn"><label>Tracking &amp; ads</label><strong id="sTrack">0</strong><small>destinations</small></div>
+  </section>
+
+  <!-- idle hero -->
+  <section class="hero" id="hero">
+    <div class="hero-card">
+      <h1>See who sees your data</h1>
+      <p>WhoSees shows you what this computer sends out to the internet, which app sent it, who receives it, and where in the world it lands. Nothing leaves your computer, and it stops the moment you press Stop.</p>
+      <button class="deep-chip" id="deepChip" hidden><i class="switch"></i><span></span></button>
+      <button class="primary big" id="startBtn"><span class="pulse-ring"></span>Start live view</button>
+      <p class="fine" id="homeLine">Your location: <button class="link" id="homeBtn">set location</button></p>
+    </div>
+  </section>
+
+  <!-- side panel / bottom sheet -->
+  <aside class="panel" id="panel">
+    <div class="grip" id="grip" aria-hidden="true"></div>
+    <nav class="tabs" role="tablist">
+      <button data-tab="apps" class="on">Apps</button>
+      <button data-tab="feed">Feed</button>
+      <button data-tab="places">Places</button>
+      <button data-tab="blocked">Blocked</button>
+      <button data-tab="alerts">Alerts</button>
+    </nav>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" placeholder="Search apps, companies, countries" spellcheck="false"></div>
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail" hidden></div>
+  </aside>
+
+  <!-- legend -->
+  <section class="legend" id="legend"></section>
+
+  <!-- stop control -->
+  <button class="stop" id="stopBtn" hidden><span class="rec"></span><span id="stopText">Stop</span></button>
+
+  <!-- threat alerts -->
+  <section class="alert-stack" id="alertStack" aria-live="assertive"></section>
+
+  <!-- map hover card -->
+  <div class="tip" id="tip" hidden></div>
+
+  <!-- settings / location dialog -->
+  <dialog id="dlg"></dialog>
+
+  <div class="toast" id="toast" hidden></div>
+</body>
+</html>

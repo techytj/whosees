@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WhoSees: coming soon</title>
+<link rel="canonical" href="https://whosees.app/">
+<meta name="description" content="WhoSees shows you which app sends your data to which company, live on a map. Free and open source. Coming soon.">
+<meta property="og:title" content="WhoSees: see who your apps are talking to">
+<meta property="og:description" content="A live map of which apps send data to which companies. Free and open source. Coming soon.">
+<meta property="og:image" content="https://whosees.app/img/og.png">
+<meta name="theme-color" content="#0a0b0d">
+<link rel="icon" href="img/favicon.png">
+<style>
+@font-face { font-family: "Archivo"; src: url("fonts/archivo.woff2") format("woff2-variations"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/plex-mono.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+:root { --bg: #0a0b0d; --fg: #eceae4; --fg-2: #a4a39c; --fg-3: #6b6c6a; --line: rgba(236,234,228,.1); --sig: #ff5b1f; --ok: #b9f28c;
+  --sans: "Archivo", "Helvetica Neue", Arial, sans-serif; --mono: "Plex Mono", ui-monospace, Menlo, Consolas, monospace; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 18px/1.55 var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+.bg { position: fixed; inset: 0; background: url("img/world.webp") 62% center / cover no-repeat; opacity: .9; }
+.bg::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,11,13,.95), rgba(10,11,13,.8) 45%, rgba(10,11,13,.35)), linear-gradient(transparent 60%, var(--bg)); }
+.grid { position: fixed; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 80px 80px; opacity: .5; -webkit-mask: linear-gradient(#000, transparent 90%); mask: linear-gradient(#000, transparent 90%); }
+.page { position: relative; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 48px); }
+.mono { font-family: var(--mono); font-size: 12.5px; letter-spacing: .02em; }
+header { display: flex; justify-content: space-between; align-items: center; height: 72px; border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 11px; font-weight: 800; font-stretch: 125%; font-size: 20px; letter-spacing: -0.03em; }
+.logo img { width: 30px; height: 30px; border-radius: 8px; }
+header .mono { color: var(--fg-3); }
+main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 64px 0; }
+.status { display: inline-flex; align-items: center; gap: 10px; color: var(--fg-2); margin-bottom: 26px; }
+.status i { width: 8px; height: 8px; background: var(--sig); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+h1 { margin: 0; font-size: clamp(46px, 8vw, 120px); font-weight: 800; font-stretch: 125%; letter-spacing: -0.045em; line-height: .92; max-width: 9.5em; text-wrap: balance; }
+h1 span { color: var(--sig); }
+p { font-size: clamp(18px, 1.6vw, 22px); color: var(--fg-2); max-width: 38ch; margin: 28px 0 0; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 26px; margin-top: 32px; color: var(--fg-2); }
+.checks span::before { content: "✓  "; color: var(--ok); }
+footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 18px 0 26px; border-top: 1px solid var(--line); color: var(--fg-3); }
+@media (max-width: 640px) {
+  .bg { background-position: 30% center; }
+  .bg::after { background: linear-gradient(rgba(10,11,13,.85), rgba(10,11,13,.65) 60%, var(--bg)); }
+  header .mono { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .status i { animation: none; } }
+</style>
+<script defer src="/s.js" data-website-id="e38b949b-cf74-4a5b-95e3-679e45386377"></script>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div><div class="grid" aria-hidden="true"></div>
+<div class="page">
+  <header><span class="logo"><img src="img/icon.png" alt="">WhoSees</span><span class="mono">WINDOWS · LINUX · ANDROID</span></header>
+  <main>
+    <div class="status mono"><i></i>COMING SOON</div>
+    <h1>See who your apps <span>talk to.</span></h1>
+    <p>Every app on your phone and computer sends information to companies around the world. WhoSees will show you which app, which company and where, live on a map.</p>
+    <div class="checks mono"><span>Free</span><span>Open source</span><span>No account</span><span>Nothing leaves your device</span></div>
+  </main>
+  <footer class="mono"><span>whosees.app</span><span>No cookies or trackers. Visits counted privately on our own server.</span></footer>
+</div>
+</body>
+</html>

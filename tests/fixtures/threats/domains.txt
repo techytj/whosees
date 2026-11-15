@@ -1,0 +1,3 @@
+# test list
+evil-c2.example
+phish-login.example
