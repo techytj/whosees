@@ -2,7 +2,7 @@
 // Owns the window, the capture agent process, and read-only access to bundled data.
 'use strict';
 
-const { app, BrowserWindow, ipcMain, protocol, net, nativeTheme, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, nativeTheme, shell, session } = require('electron');
 const { spawn, execFile } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -121,7 +121,8 @@ function send(ch, data) { if (win && !win.isDestroyed()) win.webContents.send(ch
 function startAgent(opts = {}) {
   if (agent) return { ok: true, already: true };
   if (!fs.existsSync(AGENT)) return { ok: false, error: `Capture agent not found at ${AGENT}` };
-  const args = ['--geo', GEO, '--categories', CATS, '--threats', THREATS, '--interval', String(opts.interval || 250)];
+  // --self-exe: WhoSees's own traffic (an update check, if turned on) is shown as WhoSees and never flagged as a threat
+  const args = ['--geo', GEO, '--categories', CATS, '--threats', THREATS, '--interval', String(opts.interval || 250), '--self-exe', process.execPath];
   if (opts.lan) args.push('--lan');
   const deep = !!opts.deep && (process.platform === 'linux' || process.platform === 'win32');
   const direct = DEV && process.env.WT_DEEP_DIRECT === '1'; // dev/test: already privileged
@@ -353,8 +354,17 @@ function devScreenshots(w, prefix) {
   });
 }
 
+// WhoSees sends nothing on its own. Chromium's spellchecker would otherwise download a dictionary
+// from Google (redirector.gvt1.com) the first time the app opens, even with spellcheck off in the window.
+function noNetworkAtStartup(ses) {
+  try { ses.setSpellCheckerEnabled(false); } catch {}
+  try { if (process.platform !== 'darwin') ses.setSpellCheckerLanguages([]); } catch {}
+  try { ses.setSpellCheckerDictionaryDownloadURL('http://127.0.0.1:9/'); } catch {} // never reached: a local, closed port
+}
+
 // ---------- lifecycle ----------
 app.whenReady().then(() => {
+  noNetworkAtStartup(session.defaultSession);
   migrateSettings();
   protocol.handle('wt', async (req) => {
     const p = resolveWt(req.url);

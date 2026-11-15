@@ -36,7 +36,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 struct Key { proto: Proto, local: IpAddr, lport: u16, remote: IpAddr, rport: u16 }
 
 /// What threat checks need to know about a connection after it opened.
-struct Meta { app_id: String, app_name: String, exe: Option<String>, known: bool, place: String, internet: bool }
+struct Meta { app_id: String, app_name: String, exe: Option<String>, known: bool, place: String, internet: bool, own: bool }
 
 struct Conn { seen: Vec<datatypes::DataItem>, meta: Meta, host: Option<String>, id: u64, base_sent: u64, base_recv: u64, sent: u64, recv: u64, last_emit: Instant, emitted_sent: u64, emitted_recv: u64 }
 
@@ -75,6 +75,12 @@ struct OpenEv<'a> {
 }
 
 pub static HOME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+/// The WhoSees app itself (its program path, from the UI). Its own traffic is shown, never flagged as a threat.
+pub static SELF_EXE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+fn is_self(exe: Option<&str>) -> bool {
+    let norm = |p: &str| p.replace('\\', "/").to_lowercase();
+    matches!((exe, SELF_EXE.get()), (Some(e), Some(s)) if norm(e) == norm(s))
+}
 /// The desktop user's home (the agent may run as root in Deep mode).
 pub fn home() -> String { HOME.get().cloned().unwrap_or_else(|| std::env::var("HOME").unwrap_or_default()) }
 
@@ -103,6 +109,7 @@ fn main() {
             "--deep" => deep = true,
             "--categories" => cats_path = args.next().map(PathBuf::from),
             "--home" => if let Some(h) = args.next() { let _ = HOME.set(h); },
+            "--self-exe" => if let Some(e) = args.next() { let _ = SELF_EXE.set(e); },
             // Elevated on Windows (UAC): talk to the UI over a local socket instead of pipes.
             "--connect" => connect = args.next(),
             "--threats" => threats_dir = args.next().map(PathBuf::from),
@@ -305,7 +312,7 @@ fn main() {
                         emit(&mut out, &serde_json::json!({"t":"update","id":c.id,"sent":c.sent,"recv":c.recv,
                             "ds": c.sent - c.emitted_sent, "dr": c.recv - c.emitted_recv}));
                         c.emitted_sent = c.sent; c.emitted_recv = c.recv; c.last_emit = Instant::now();
-                        if c.meta.internet {
+                        if c.meta.internet && !c.meta.own {
                             if let Some(a) = threats.check_upload(&c.meta.app_id, &c.meta.app_name, c.meta.exe.as_deref(), s.remote, c.host.as_deref(), c.sent, c.recv, c.meta.known, &c.meta.place) {
                                 emit(&mut out, &serde_json::json!({"t":"alert","conn":c.id,"host":c.host,"remote":s.remote.to_string(),"alert":a}));
                             }
@@ -314,7 +321,9 @@ fn main() {
                 }
                 None => {
                     let id = next_id; next_id += 1;
-                    let app = procs.app_for_sock(s);
+                    let mut app = procs.app_for_sock(s);
+                    let own = is_self(app.exe.as_deref());
+                    if own { app.name = "WhoSees".into(); app.system = false; }
                     let g = geo.as_ref().map(|g| g.lookup(s.remote));
                     let g = g.as_ref().unwrap_or(&empty_geo);
                     let (svc, what, enc) = classify::service(s.proto, s.rport);
@@ -333,7 +342,7 @@ fn main() {
                         (Some(c), Some(cc)) => format!("{}, {cc}", c.split(" (").next().unwrap_or(c)),
                         (None, Some(cc)) => cc.clone(), _ => "unknown location".into() };
                     let known = hi.is_some() || matches!(category, "cloud" | "cdn" | "streaming" | "social" | "messaging");
-                    let meta = Meta { app_id: app.id.clone(), app_name: app.name.clone(), exe: app.exe.clone(), known, place, internet: sc == Scope::Internet };
+                    let meta = Meta { app_id: app.id.clone(), app_name: app.name.clone(), exe: app.exe.clone(), known, place, internet: sc == Scope::Internet, own };
                     let app_blocked = blocker.blocks_app(app.exe.as_deref());
                     let blocked = sc == Scope::Internet && (app_blocked || blocker.is_blocked(&s.remote) || blocker.matches(host.as_deref(), owner.as_deref()));
                     if blocked && !app_blocked { blocker.add(&[s.remote]); }
@@ -350,7 +359,7 @@ fn main() {
                     // Opened during the session: everything it has moved so far counts.
                     let (bs, br) = if first { (s.bytes_sent, s.bytes_recv) } else { (0, 0) };
                     let (cs, cr) = (s.bytes_sent - bs, s.bytes_recv - br);
-                    if meta.internet {
+                    if meta.internet && !meta.own {
                         for a in threats.check_conn(&meta.app_id, &meta.app_name, meta.exe.as_deref(), s.remote, s.rport, host.as_deref(), meta.known, &meta.place) {
                             emit(&mut out, &serde_json::json!({"t":"alert","conn":id,"host":host,"remote":s.remote.to_string(),"alert":a}));
                         }
@@ -382,7 +391,7 @@ fn main() {
             if let Some(c) = conns.get_mut(&k) {
                 if c.host.as_deref() != Some(h.as_str()) {
                     let hi = hostdb.lookup(&h);
-                    if c.meta.internet {
+                    if c.meta.internet && !c.meta.own {
                         for a in threats.check_host(&c.meta.app_id, &c.meta.app_name, &h, c.meta.known || hi.is_some()) {
                             emit(&mut out, &serde_json::json!({"t":"alert","conn":c.id,"host":h,"remote":k.remote.to_string(),"alert":a}));
                         }

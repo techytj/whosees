@@ -107,7 +107,9 @@ impl Threats {
         if let Some(h) = host { out.extend(self.check_host(app_id, app_name, h, known_service)); }
         if let Some(e) = exe {
             let l = e.to_lowercase().replace('\\', "/");
-            let risky = ["/downloads/", "/tmp/", "/dev/shm/", "/appdata/local/temp/", "/windows/temp/", "/var/tmp/"]
+            // AppImages always run from a private mount in /tmp (/tmp/.mount_XXXX): that's normal, not a warning sign.
+            let appimage = l.contains("/.mount_");
+            let risky = !appimage && ["/downloads/", "/tmp/", "/dev/shm/", "/appdata/local/temp/", "/windows/temp/", "/var/tmp/"]
                 .iter().any(|d| l.contains(d));
             if risky && self.once(format!("loc|{app_id}")) {
                 let folder = if l.contains("/downloads/") { "your Downloads folder" } else { "a temporary folder" };
@@ -234,5 +236,14 @@ mod tests {
         let mut t = Threats::default();
         t.opens.insert(k, [50, 47, 30, 28, 3].iter().map(|s| now - std::time::Duration::from_secs(*s)).collect());
         assert!(!t.check_conn("app", "App", None, ip, 443, None, false, "Somewhere").iter().any(|x| x.kind == "beaconing"));
+    }
+    #[test]
+    fn appimage_mount_is_not_a_risky_folder() {
+        let ip: IpAddr = "203.0.113.9".parse().unwrap();
+        let risky = |exe: &str| Threats::default().check_conn("a", "App", Some(exe), ip, 443, None, true, "X").iter().any(|x| x.kind == "risky-location");
+        assert!(!risky("/tmp/.mount_WhoSeeAbC123/whosees"), "every AppImage runs from /tmp/.mount_*");
+        assert!(risky("/tmp/payload/run"));
+        assert!(risky("/home/me/Downloads/tool"));
+        assert!(!risky("/usr/bin/curl"));
     }
 }

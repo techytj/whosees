@@ -38,8 +38,12 @@ if rpm:
 if img:
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'ui')); import driver
     driver.ensure_display('wt-shot', 1440, 900)  # its own hidden screen, whatever ran before
-    ud = tempfile.mkdtemp(prefix='wt-appimage-')
-    p = subprocess.Popen([img[0], '--ozone-platform=wayland', f'--user-data-dir={ud}'], env=dict(os.environ, WAYLAND_DISPLAY='wt-shot'),
+    ft = subprocess.run(['file', '-L', img[0]], capture_output=True, text=True).stdout
+    check('AppImage runtime is static (runs without libfuse2)', 'static' in ft and 'dynamically linked' not in ft, ft)
+    ud = tempfile.mkdtemp(prefix='wt-appimage-'); netlog = os.path.join(ud, 'net.json')
+    # first launch, in a language whose spellcheck dictionary Chromium would otherwise download from Google
+    p = subprocess.Popen([img[0], '--ozone-platform=wayland', f'--user-data-dir={ud}', f'--log-net-log={netlog}'],
+                         env=dict(os.environ, WAYLAND_DISPLAY='wt-shot', LANG='de_DE.UTF-8', LC_ALL='de_DE.UTF-8'),
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(12); p.terminate()
     try: p.wait(10)
@@ -49,16 +53,23 @@ if img:
     check('AppImage starts and its agent works (home city found)', bool(home), home)
     log = open(os.path.join(ud, 'wiretrace.log')).read() if os.path.exists(os.path.join(ud, 'wiretrace.log')) else ''
     check('AppImage page has no errors', 'Uncaught' not in log and 'Error' not in log, log[-300:])
+    import re
+    urls = sorted(set(re.findall(r'"url":"(https?://[^"]+)"', open(netlog).read() if os.path.exists(netlog) else '')))
+    check('AppImage sends nothing on first launch (no network requests at all)', os.path.exists(netlog) and not urls, urls[:5])
 
 # Windows installer (built inside the VM)
 w = subprocess.run([os.path.join(ROOT, 'tools/vm-dist.sh')], capture_output=True, text=True, timeout=1800)
 exe = glob.glob(os.path.join(APP, 'dist', 'WhoSees Setup *.exe'))
 check('Windows installer builds', w.returncode == 0 and exe and time.time() - os.path.getmtime(exe[0]) < 1800, w.stdout[-400:] + w.stderr[-400:])
 s = subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'powershell -NoProfile -Command "Remove-Item -Recurse -Force C:\\wiretrace\\ud-test -ea 0; '
-                    "Start-Process 'C:\\wiretrace\\desktop\\app\\dist\\win-unpacked\\WhoSees.exe' -ArgumentList '--user-data-dir=C:\\wiretrace\\ud-test'; "
-                    'Start-Sleep 12; Stop-Process -Name WhoSees -Force -ea 0; Get-Content C:\\wiretrace\\ud-test\\settings.json -ea 0; '
+                    "Remove-Item -Force C:\\wiretrace\\net-test.json -ea 0; "
+                    "Start-Process 'C:\\wiretrace\\desktop\\app\\dist\\win-unpacked\\WhoSees.exe' -ArgumentList '--user-data-dir=C:\\wiretrace\\ud-test','--log-net-log=C:\\wiretrace\\net-test.json'; "
+                    'Start-Sleep 12; Stop-Process -Name WhoSees -Force -ea 0; Start-Sleep 2; Get-Content C:\\wiretrace\\ud-test\\settings.json -ea 0; '
+                    "if (Test-Path C:\\wiretrace\\net-test.json) { 'NETLOG' } ; Select-String -Path C:\\wiretrace\\net-test.json -Pattern 'url.:.https?://[^\\x22]+' -AllMatches -ea 0 | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique | ForEach-Object { 'NETURL ' + $_ }; "
                     'Remove-Item -Recurse -Force C:\\wiretrace\\ud-test -ea 0"'], capture_output=True, text=True, timeout=120)
 check('Windows app starts and its agent works (home city found)', '"home"' in s.stdout, s.stdout + s.stderr)
+check('Windows app sends nothing on first launch (no network requests at all)', 'NETLOG' in s.stdout and 'NETURL' not in s.stdout,
+      [l for l in s.stdout.splitlines() if l.startswith('NETURL') or l == 'NETLOG'] or s.stderr[-300:])
 t = subprocess.run(['ssh', '-o', 'BatchMode=yes', VM, 'dir /b C:\\wiretrace\\desktop\\app\\dist\\win-unpacked\\resources\\shared\\threats'], capture_output=True, text=True, timeout=60)
 check('Windows package includes threat lists', 'domains.txt' in t.stdout and 'ips.txt' in t.stdout, t.stdout + t.stderr)
 

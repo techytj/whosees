@@ -105,7 +105,7 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 
 def app_ld(os_name, file):
     return {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": f"WhoSees for {os_name}",
-            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.1.1",
+            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.1.2",
             "downloadUrl": REL + file, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
             "license": "https://www.gnu.org/licenses/gpl-3.0.html", "url": SITE + '/',
             "author": {"@type": "Person", "name": "TechyTJ", "url": "https://github.com/techytj"}}
@@ -289,7 +289,7 @@ pages.append(page('linux/', 'WhoSees for Linux: see which programs send your dat
 <ol>
 <li>Download <code>WhoSees-Linux.AppImage</code> (about 210 MB).</li>
 <li>Make it executable: right-click it, open <b>Properties</b> and turn on <b>Allow executing file as program</b>, or run <code>chmod +x WhoSees-Linux.AppImage</code>.</li>
-<li>Double-click it to start WhoSees. If it doesn't start, install your distribution's <code>libfuse2</code> (or <code>fuse</code>) package.</li>
+<li>Double-click it to start WhoSees. Nothing else to install: it runs on Ubuntu, Zorin, Mint, Arch, Fedora and most other desktops as they come. If it ever says it <i>can't mount</i>, your system is missing FUSE: install <code>fuse3</code> (<code>sudo apt install fuse3</code>, <code>sudo pacman -S fuse3</code> or <code>sudo dnf install fuse3</code>), or start it with <code>./WhoSees-Linux.AppImage --appimage-extract-and-run</code>.</li>
 </ol>
 <h3>Fedora</h3>
 <p>Download <a href="{REL}whosees-fedora.x86_64.rpm" data-umami-event="download" data-umami-event-platform="fedora">whosees-fedora.x86_64.rpm</a> and install it with <code>sudo dnf install ./whosees-fedora.x86_64.rpm</code>. WhoSees then appears in your app menu.</p>

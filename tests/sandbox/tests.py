@@ -187,5 +187,16 @@ check('no alert for a normal site', not [e for e in alerts()[before:] if e.get('
 check('each alert raised once per app', len(alerts()) == len({(e['alert']['kind'], e['alert']['title'], e.get('host')) for e in alerts()}), [(e['alert']['kind'], e.get('host'), e.get('conn'), e['alert']['title']) for e in alerts()])
 a.stop()
 
+# WhoSees's own traffic (e.g. an update check from an AppImage, which runs from /tmp/.mount_*) is shown, never flagged
+own = '/tmp/.mount_WhoSeeTest/whosees'; os.makedirs(os.path.dirname(own), exist_ok=True); shutil.copy('/usr/bin/python3', own)
+a = Agent(extra=('--self-exe', own))
+subprocess.run([own, '-I', '-c', "import socket,time;s=socket.create_connection(('203.0.113.9',4444));s.send(b'x');time.sleep(1)"], timeout=10)
+a.wait(lambda: any(e.get('app', {}).get('exe') == own for e in a.opens()), 3); time.sleep(0.5)
+mine = [e for e in a.opens() if e.get('app', {}).get('exe') == own]
+check("WhoSees's own connections are labelled WhoSees", mine and all(e['app']['name'] == 'WhoSees' for e in mine), [e.get('app') for e in mine])
+ids = {e['id'] for e in mine}; flagged = [e['alert']['kind'] for e in a.events if e['t'] == 'alert' and e.get('conn') in ids]
+check("WhoSees's own connections never raise threat alerts (port 4444, /tmp folder)", mine and not flagged, flagged)
+a.stop(); shutil.rmtree(os.path.dirname(own), ignore_errors=True)
+
 print(f'SANDBOX {"OK" if fails == 0 else f"{fails} FAILED"}')
 sys.exit(fails)
