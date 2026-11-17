@@ -294,7 +294,9 @@ async function start() {
     if (go === 'cancel') return;
     if (go === 'standard') { state.settings = await wt.setSettings({ deep: false }); syncDeepChip(); return start(); }
   }
-  const r = await wt.start({ lan: !!state.settings.lan, deep });
+  // Payload reading is opt-in and only meaningful in Deep mode (kinds not bodies, in memory).
+  const readPayloads = deep && !!state.settings.readPayloads;
+  const r = await wt.start({ lan: !!state.settings.lan, deep, readPayloads });
   if (!r.ok) { toast(r.error || 'Could not start'); return; }
   setRunning(true);
   if (privateDns) toast('Private DNS is on, so some website names may be missing', 6000);
@@ -1105,6 +1107,7 @@ function openSettings() {
       <div class="seg" id="themeSeg">${['system', 'dark', 'light'].map((t) => `<button data-t="${t}" class="${t === theme ? 'on' : ''}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div></div>
     <div class="opt"><div><b>Your location</b><small>${s.home ? esc(`${s.home.city}, ${countryName(s.home.country)}`) : 'Not set'}</small></div><button class="ghost" id="setLoc">Change</button></div>
     ${['linux', 'win32'].includes(wt.platform) ? `<div class="opt"><div><b>Deep mode</b><small>Shows website names and tracker labels, and catches every connection. Asks for ${wt.platform === 'win32' ? 'administrator permission' : 'your password'} each time you press Start. Only reads where data goes, never what's inside it.</small></div><button class="switch ${s.deep ? 'on' : ''}" id="deepSw" aria-label="Deep mode"></button></div>` : ''}
+    ${['linux', 'win32'].includes(wt.platform) ? `<div class="opt"><div><b>Look inside the data</b><small>While Deep mode runs, read what apps actually send over HTTPS and show the kinds of personal data leaving, like email, location or logins. Read on this ${DEVICE} only, in memory, never saved or uploaded.${s.deep ? '' : ' Needs Deep mode.'} Off by default.</small></div><button class="switch ${s.readPayloads ? 'on' : ''}" id="payloadSw" aria-label="Look inside the data"></button></div>` : ''}
     <div class="opt"><div><b>Report</b><small>${session.started ? 'Save a PDF of what this live view found. Made on this ' + DEVICE + ', never uploaded.' : 'After a live view, save a PDF of what it found.'}</small></div><button class="ghost" id="setReport" ${session.started ? '' : 'disabled'}>Save PDF</button></div>
     <div class="opt"><div><b>Support WhoSees</b><small>Free, with every feature. If it's useful, you can buy me a coffee.</small></div><button class="ghost" data-support>Support</button></div>
     <div class="opt"><div><b>Threat alerts</b><small>Warn about dangerous websites, malicious servers and suspicious behaviour</small></div><button class="switch ${s.alerts !== false ? 'on' : ''}" id="alertSw" aria-label="Threat alerts"></button></div>
@@ -1132,6 +1135,13 @@ function openSettings() {
     state.settings = await wt.setSettings({ deep: on });
     syncDeepChip();
     if (state.running) toast('Applies to the next live view');
+  });
+  d.querySelector('#payloadSw')?.addEventListener('click', async (e) => {
+    const on = !e.currentTarget.classList.contains('on');
+    e.currentTarget.classList.toggle('on', on);
+    state.settings = await wt.setSettings({ readPayloads: on });
+    if (on && !state.settings.deep) toast('This only works in Deep mode — turn that on too.', 5000);
+    else if (state.running) toast('Applies to the next live view');
   });
   d.querySelector('#alertSw').onclick = async (e) => {
     const on = !e.currentTarget.classList.contains('on');

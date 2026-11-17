@@ -23,7 +23,12 @@ run windows     python3 -I tests/windows/run.py
 run android     bash -c 'tools/emulator.sh && WT_OUT="'"$out"'/android" python3 -I tests/android/run.py; rc=$?; tools/emulator.sh stop; exit $rc'
 [ "${1:-}" = "--quick" ] || run packaging python3 -I tests/packaging/run.py
 # hidden test screens from the UI stages: close them so nothing keeps running afterwards
-pkill -f "kwin_wayland --virtual .*--socket wt-" 2>/dev/null
+# Kill each one's whole process group: its private dbus-daemon and the portals it started
+# outlive KWin otherwise, and every regression run leaked ~4 inotify instances per screen.
+for p in $(pgrep -f "kwin_wayland --virtual .*--socket wt-"); do
+  g=$(ps -o pgid= -p "$p" | tr -d ' '); [ -n "$g" ] && kill -- "-$g" 2>/dev/null
+done
+rm -rf /tmp/wt-*-kwin-* 2>/dev/null
 echo; echo "================ REGRESSION SUMMARY ($out)"
 rc=0
 for k in unit sandbox engine ui ui-deep windows android packaging; do

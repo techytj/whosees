@@ -132,6 +132,9 @@ function startAgent(opts = {}) {
   let agentPath = AGENT;
   if (deep) {
     args.push('--deep', '--home', app.getPath('home'));
+    // Opt-in payload reading (off by default): read the kinds of data apps send
+    // over TLS. In memory only, kinds not bodies. Only ever with Deep mode.
+    if (opts.readPayloads) args.push('--read-payloads');
     // An AppImage runs from a private FUSE mount that root can't read: stage the agent + data in ~/.cache.
     if (process.env.APPIMAGE) {
       const staged = stageForRoot();

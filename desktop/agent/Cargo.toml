@@ -1,6 +1,6 @@
 [package]
 name = "whosees-agent"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "WhoSees capture agent: reports outgoing connections as JSON lines"
@@ -12,6 +12,12 @@ serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+# Deep-mode TLS payload reading (eBPF uprobes). Pure-Rust loader: no libbpf,
+# no clang at build or runtime. The eBPF object is prebuilt & committed
+# (src/sslcap.bpf.o), so the normal build needs no nightly/bpf-linker.
+[target.'cfg(target_os = "linux")'.dependencies]
+aya = "0.14.0"
 
 [target.'cfg(windows)'.dependencies]
 ferrisetw = "1.2"

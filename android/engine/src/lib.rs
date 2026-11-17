@@ -16,6 +16,8 @@
 #[allow(dead_code)]
 #[path = "../../../desktop/agent/src/datatypes.rs"] mod datatypes;
 #[allow(dead_code)]
+#[path = "../../../desktop/agent/src/http2.rs"] mod http2;
+#[allow(dead_code)]
 #[path = "../../../desktop/agent/src/sniff.rs"] mod sniff;
 mod diag { pub use crate::sock::Proto; } // classify.rs refers to crate::diag::Proto
 

@@ -49,25 +49,113 @@ pub fn seen_dns(name: &str) -> DataItem {
     seen("website-names", "Website name you looked up (unencrypted)", Some(name.to_string()))
 }
 
-/// Inspect the start of an unencrypted HTTP request (request line, headers, beginning of the body).
+/// Inspect the start of an **unencrypted** HTTP/1 request seen on the wire
+/// (request line, headers, beginning of the body). Detail is left intact —
+/// this is the pre-existing plaintext-HTTP path used by `sniff.rs`.
 pub fn inspect_http(payload: &[u8]) -> Vec<DataItem> {
     let text = String::from_utf8_lossy(&payload[..payload.len().min(8192)]);
+    let Some((method, target, headers, body)) = parse_http1(&text) else { return vec![] };
+    dedupe(scan_request(&method, &target, &headers, &body, false))
+}
+
+/// Inspect **decrypted** TLS plaintext captured in Deep mode (OpenSSL/NSS
+/// uprobes). Routes HTTP/1 vs HTTP/2, runs the same matchers, and then MASKS
+/// every item's `detail` — the report shows *kinds*, never raw bodies.
+/// Stateless: a fresh HPACK decoder, fine for self-contained first requests.
+///
+/// Also returns the request's host/`:authority` (lowercased, port stripped).
+/// The host NEVER enters a DataItem or the report; the capture layer uses it
+/// only to confirm which already-tracked connection a write belongs to. None
+/// when absent or unparseable.
+pub fn inspect_payload_host(payload: &[u8]) -> (Vec<DataItem>, Option<String>) {
+    if crate::http2::is_h2_preface(payload) {
+        let mut h = crate::http2::Hpack::new();
+        inspect_payload_h2_host(&mut h, payload)
+    } else {
+        let text = String::from_utf8_lossy(&payload[..payload.len().min(8192)]);
+        match parse_http1(&text) {
+            Some((m, t, hd, b)) => {
+                let host = hd.iter().find(|(k, _)| k == "host").and_then(|(_, v)| normalize_host(v));
+                (dedupe(scan_request(&m, &t, &hd, &b, true).into_iter().map(mask).collect()), host)
+            }
+            None => (vec![], None),
+        }
+    }
+}
+
+/// Stateful HTTP/2 variant for one connection: the caller owns the HPACK
+/// decoder so indexed headers across writes resolve. Masked like above, and
+/// returns the `:authority` for connection confirmation (never stored).
+pub fn inspect_payload_h2_host(
+    hpack: &mut crate::http2::Hpack,
+    payload: &[u8],
+) -> (Vec<DataItem>, Option<String>) {
+    let (items, host) = inspect_h2(hpack, payload);
+    (dedupe(items.into_iter().map(mask).collect()), host)
+}
+
+fn inspect_h2(hpack: &mut crate::http2::Hpack, payload: &[u8]) -> (Vec<DataItem>, Option<String>) {
+    let mut out = Vec::new();
+    let mut host = None;
+    for req in crate::http2::parse_frames(payload, hpack) {
+        if host.is_none() {
+            host = normalize_host(&req.authority);
+        }
+        let body = String::from_utf8_lossy(&req.body).into_owned();
+        out.extend(scan_request(&req.method, &req.path, &req.headers, &body, true));
+    }
+    (out, host)
+}
+
+/// Normalize a Host / `:authority` value to a bare lowercase hostname for
+/// connection matching: drop any userinfo, strip a numeric port, unwrap IPv6
+/// brackets. None when empty.
+fn normalize_host(h: &str) -> Option<String> {
+    let h = h.trim();
+    let h = h.rsplit('@').next().unwrap_or(h); // strip userinfo if present
+    let h = match h.rsplit_once(':') {
+        Some((host, port)) if !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()) => host,
+        _ => h,
+    };
+    let h = h.trim_matches(|c| c == '[' || c == ']');
+    if h.is_empty() { None } else { Some(h.to_ascii_lowercase()) }
+}
+
+/// Parse an HTTP/1 request head into (method, target, lowercased headers, body).
+fn parse_http1(text: &str) -> Option<(String, String, Vec<(String, String)>, String)> {
     let mut lines = text.split("\r\n");
-    let Some(req) = lines.next() else { return vec![] };
+    let req = lines.next()?;
     let mut parts = req.split(' ');
-    let (Some(method), Some(target)) = (parts.next(), parts.next()) else { return vec![] };
-    if !["GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS", "DELETE"].contains(&method) { return vec![] }
-    let mut out: Vec<DataItem> = vec![seen("browsing", "The page or file requested (unencrypted)", Some(trim(target, 120)))];
+    let (method, target) = (parts.next()?, parts.next()?);
+    if !["GET", "POST", "PUT", "HEAD", "PATCH", "OPTIONS", "DELETE"].contains(&method) { return None; }
+    let mut headers = Vec::new();
     let mut body = String::new();
     let mut in_body = false;
     for l in lines {
         if in_body { body.push_str(l); body.push('\n'); continue; }
         if l.is_empty() { in_body = true; continue; }
-        let Some((k, v)) = l.split_once(':') else { continue };
-        match k.trim().to_ascii_lowercase().as_str() {
-            "user-agent" => out.push(seen("device", "Device and app details", Some(trim(v.trim(), 100)))),
-            "cookie" => out.push(seen("cookies", "Cookies (can identify you)", None)),
-            "referer" => out.push(seen("browsing", "The page you came from", Some(trim(v.trim(), 100)))),
+        if let Some((k, v)) = l.split_once(':') {
+            headers.push((k.trim().to_ascii_lowercase(), v.trim().to_string()));
+        }
+    }
+    Some((method.to_string(), target.to_string(), headers, body))
+}
+
+/// Shared matcher core over a parsed request. Produces UNMASKED items;
+/// `enc` only tweaks a label. Masking (for decrypted traffic) is applied by
+/// the caller (`inspect_payload*`).
+fn scan_request(_method: &str, target: &str, headers: &[(String, String)], body: &str, enc: bool) -> Vec<DataItem> {
+    let page_label = if enc { "The page or file requested" } else { "The page or file requested (unencrypted)" };
+    let mut out: Vec<DataItem> = vec![seen("browsing", page_label, Some(trim(target, 120)))];
+    for (k, v) in headers {
+        match k.as_str() {
+            "user-agent" => out.push(seen("device", "Device and app details", Some(trim(v, 100)))),
+            "cookie" => {
+                push(&mut out, seen("cookies", "Cookies (can identify you)", None));
+                if looks_auth_cookie(v) { push(&mut out, seen("auth", "A login token or session cookie", None)); }
+            }
+            "referer" => out.push(seen("browsing", "The page you came from", Some(trim(v, 100)))),
+            "authorization" => push(&mut out, seen("auth", "A login token or session cookie", None)),
             _ => {}
         }
     }
@@ -78,7 +166,71 @@ pub fn inspect_http(payload: &[u8]) -> Vec<DataItem> {
     // free-text checks across the whole request
     let all = format!("{target} {body}");
     if let Some(e) = find_email(&all) { push(&mut out, seen("email", "Your email address", Some(e))); }
-    dedupe(out)
+    out
+}
+
+/// A Cookie header carries a session/login token if any cookie *name* looks like one.
+fn looks_auth_cookie(cookie: &str) -> bool {
+    cookie.split(';').any(|kv| {
+        let name = kv.split('=').next().unwrap_or("").trim().to_ascii_lowercase();
+        matches!(name.as_str(),
+            "session" | "sessionid" | "sid" | "token" | "auth" | "jwt" | "sess"
+            | "access_token" | "auth_token" | "csrftoken" | "connect.sid")
+            || name.ends_with("session") || name.ends_with("sessionid")
+            || name.ends_with("token") || name.ends_with("_sid") || name.ends_with("auth")
+    })
+}
+
+/// Redact a DataItem's detail for the decrypted path: keep the *kind*, drop or
+/// mask the value. Guardrail: raw bodies never leave the agent.
+fn mask(mut d: DataItem) -> DataItem {
+    d.detail = match d.kind {
+        "email" => d.detail.as_deref().map(mask_email),
+        "phone" => d.detail.as_deref().map(|s| mask_tail(s, 2)),
+        "advertising-id" | "identifier" => d.detail.as_deref().map(|s| mask_tail(s, 4)),
+        // precise value is the sensitive part — keep only the kind
+        "location" | "search" | "auth" | "password" | "cookies" => None,
+        // the User-Agent is a strong fingerprint; keep the kind, drop the string
+        "device" => None,
+        // only the first path segment: deep paths carry ids, tokens and names
+        "browsing" => d.detail.as_deref().map(coarse_path),
+        _ => d.detail,
+    };
+    d
+}
+
+fn mask_email(s: &str) -> String {
+    match s.split_once('@') {
+        Some((local, domain)) => {
+            let first = local.chars().next().unwrap_or('*');
+            format!("{first}***@{domain}")
+        }
+        None => "***".to_string(),
+    }
+}
+
+fn mask_tail(s: &str, keep: usize) -> String {
+    let digits: Vec<char> = s.chars().filter(|c| !c.is_whitespace()).collect();
+    if digits.len() <= keep { return "•".repeat(digits.len().max(1)); }
+    let masked = "•".repeat(digits.len() - keep);
+    let tail: String = digits[digits.len() - keep..].iter().collect();
+    format!("{masked}{tail}")
+}
+
+/// Coarsen a request target: strip the query, then keep only the leading path
+/// segment, so deep paths (ids, tokens, names) can't leak into the report.
+fn coarse_path(s: &str) -> String {
+    // Absolute URL (e.g. a Referer): drop scheme://host, keep just the path.
+    let after_host = match s.find("://") {
+        Some(i) => { let rest = &s[i + 3..]; rest.find('/').map(|j| &rest[j..]).unwrap_or("/") }
+        None => s,
+    };
+    let path = after_host.split('?').next().unwrap_or(after_host);
+    let body = path.trim_start_matches('/');
+    match body.split('/').next() {
+        Some(first) if !first.is_empty() => format!("/{}{}", trim(first, 40), if body.contains('/') { "/…" } else { "" }),
+        _ => "/".to_string(),
+    }
 }
 
 fn classify_param(k: &str, v: &str, out: &mut Vec<DataItem>) {
@@ -170,5 +322,69 @@ mod tests {
         assert!(ads.contains(&"advertising-id"));
         assert!(likely_for("other", "HTTP", false).iter().any(|d| d.kind == "unencrypted"));
         assert_eq!(likely_for("other", "NTP", false).len(), 1);
+    }
+
+    #[test]
+    fn decrypted_detail_is_masked() {
+        let r = b"POST /login?q=hello HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer abc.def.ghi\r\n\r\nemail=jane%40example.com&phone=+14165550199&lat=43.6&lng=-79.3";
+        let d = inspect_payload_host(r).0;
+        let kinds: Vec<&str> = d.iter().map(|x| x.kind).collect();
+        for k in ["email", "phone", "location", "auth", "search", "browsing"] {
+            assert!(kinds.contains(&k), "missing {k}: {kinds:?}");
+        }
+        // email masked to first-char + domain
+        assert_eq!(d.iter().find(|x| x.kind == "email").unwrap().detail.as_deref(), Some("j***@example.com"));
+        // phone keeps only last 2 digits
+        let phone = d.iter().find(|x| x.kind == "phone").unwrap().detail.as_deref().unwrap();
+        assert!(phone.ends_with("99") && phone.contains('•'), "{phone}");
+        // precise/sensitive kinds drop detail entirely
+        assert!(d.iter().find(|x| x.kind == "location").unwrap().detail.is_none());
+        assert!(d.iter().find(|x| x.kind == "search").unwrap().detail.is_none());
+        assert!(d.iter().find(|x| x.kind == "auth").unwrap().detail.is_none());
+        // browsing path keeps route but strips the query string
+        assert_eq!(d.iter().find(|x| x.kind == "browsing").unwrap().detail.as_deref(), Some("/login"));
+    }
+
+    #[test]
+    fn http2_request_detects_kinds() {
+        // h2 preface + one HEADERS frame (RFC 7541 C.4.1 block = GET www.example.com /)
+        let block = [0x82u8, 0x86, 0x84, 0x41, 0x8c, 0xf1, 0xe3, 0xc2, 0xe5, 0xf2, 0x3a, 0x6b, 0xa0, 0xab, 0x90, 0xf4, 0xff];
+        let mut buf = Vec::new();
+        buf.extend_from_slice(crate::http2::H2_PREFACE);
+        let len = block.len();
+        buf.extend_from_slice(&[(len >> 16) as u8, (len >> 8) as u8, len as u8, 0x01, 0x04, 0, 0, 0, 1]);
+        buf.extend_from_slice(&block);
+        let d = inspect_payload_host(&buf).0;
+        assert!(d.iter().any(|x| x.kind == "browsing"), "{d:?}");
+    }
+
+    #[test]
+    fn session_cookie_is_auth() {
+        let r = b"GET / HTTP/1.1\r\nHost: x\r\nCookie: theme=dark; session=deadbeef\r\n\r\n";
+        let kinds: Vec<&str> = inspect_payload_host(r).0.iter().map(|x| x.kind).collect();
+        assert!(kinds.contains(&"auth"), "{kinds:?}");
+        assert!(kinds.contains(&"cookies"));
+        // a non-session cookie should NOT be flagged as auth
+        let r2 = b"GET / HTTP/1.1\r\nHost: x\r\nCookie: theme=dark; lang=en\r\n\r\n";
+        let kinds2: Vec<&str> = inspect_payload_host(r2).0.iter().map(|x| x.kind).collect();
+        assert!(!kinds2.contains(&"auth"), "{kinds2:?}");
+    }
+
+    #[test]
+    fn host_extracted_for_connection_matching() {
+        // HTTP/1 Host: normalized to a bare lowercase hostname (port stripped).
+        let (_items, h) = inspect_payload_host(b"GET /x HTTP/1.1\r\nHost: Example.COM:8443\r\n\r\n");
+        assert_eq!(h.as_deref(), Some("example.com"));
+        // HTTP/2 :authority (RFC 7541 C.4.1 block = www.example.com).
+        let block = [0x82u8, 0x86, 0x84, 0x41, 0x8c, 0xf1, 0xe3, 0xc2, 0xe5, 0xf2, 0x3a, 0x6b, 0xa0, 0xab, 0x90, 0xf4, 0xff];
+        let mut buf = Vec::new();
+        buf.extend_from_slice(crate::http2::H2_PREFACE);
+        let len = block.len();
+        buf.extend_from_slice(&[(len >> 16) as u8, (len >> 8) as u8, len as u8, 0x01, 0x04, 0, 0, 0, 1]);
+        buf.extend_from_slice(&block);
+        assert_eq!(inspect_payload_host(&buf).1.as_deref(), Some("www.example.com"));
+        // Non-HTTP plaintext (e.g. NSS writing a non-request buffer): no host, no kinds.
+        let (items, host) = inspect_payload_host(b"\x16\x03\x01 some non-http bytes");
+        assert!(items.is_empty() && host.is_none(), "{items:?} {host:?}");
     }
 }

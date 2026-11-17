@@ -105,7 +105,7 @@ def page(path, title, desc, crumb, h1, lead, body, ld=(), ctas='', side_html=Non
 
 def app_ld(os_name, file):
     return {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": f"WhoSees for {os_name}",
-            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.3.0",
+            "applicationCategory": "SecurityApplication", "operatingSystem": os_name, "softwareVersion": "0.4.0",
             "downloadUrl": REL + file, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
             "license": "https://www.gnu.org/licenses/gpl-3.0.html", "url": SITE + '/',
             "author": {"@type": "Person", "name": "TechyTJ", "url": "https://github.com/techytj"}}

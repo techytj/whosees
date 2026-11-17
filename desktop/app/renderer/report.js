@@ -98,7 +98,7 @@ export function collect(s, { rules = [], home = null, now = Date.now() } = {}) {
   const abroad = home?.country ? [...countries.values()].filter((x) => x.cc !== home.country).reduce((t, x) => t + x.sent, 0) : null;
   const ended = s.ended || now;
   return {
-    started: s.started || now, ended, running: !s.ended, mode: s.mode, conns, net, companies: [...companies.values()].sort((x, y) => y.sent - x.sent || y.n - x.n),
+    started: s.started || now, ended, running: !s.ended, mode: s.mode, readPayloads: !!s.readPayloads, conns, net, companies: [...companies.values()].sort((x, y) => y.sent - x.sent || y.n - x.n),
     countries: [...countries.values()].sort((x, y) => y.sent - x.sent || y.n - x.n), apps, trackers, byCat, totalSent, totalRecv,
     plain, alerts, rules, stopped, blockedConns, blockedPlaces, abroad, home,
     data: s.dataFor(net.map((c) => c.id)), timeline: s.rateLog?.length ? s.rateLog : (s.history || []).map((v, i, h) => [ended - (h.length - i) * 1000, v]),
@@ -282,9 +282,8 @@ export function buildReport(s, ctx) {
   const chip = (k) => `<span class="chip"><i style="background:${CAT_COLOR[k] || CAT_COLOR.other}"></i>${esc(CATEGORIES[k]?.label || k)}</span>`;
   const gradeTag = (g) => `<span class="grade g-${g.toLowerCase()}">${g}</span>`;
   const more = (list, n, fmt) => list.slice(0, n).map(fmt).join('') + (list.length > n ? `<li class="more">+ ${list.length - n} more</li>` : '');
-  let secN = 0;
-  const NEW_PAGE = new Set(['apps', 'companies', 'connections']); // the long sections start on a fresh page, the rest flow on
-  const sec = (id, name, intro = '') => `<h2 id="${id}"${NEW_PAGE.has(id) ? ' class="np"' : ''}><span class="k">${String(++secN).padStart(2, '0')}</span>${esc(name)}</h2>${intro ? `<p class="intro">${intro}</p>` : ''}`;
+  const NEW_PAGE = new Set(['apps', 'connections']); // the long sections start on a fresh page, the rest flow on
+  const sec = (id, name, intro = '') => `<h2 id="${id}"${NEW_PAGE.has(id) ? ' class="np"' : ''}>${esc(name)}</h2>${intro ? `<p class="intro">${intro}</p>` : ''}`;
 
   const cover = `<section class="cover">
     <div class="cv-top"><span class="brand">${LOGO}WhoSees</span><span class="mono">PRIVACY REPORT · ${esc(when(r.ended).toUpperCase())}</span></div>
@@ -312,8 +311,9 @@ export function buildReport(s, ctx) {
     ${r.totalSent ? `<h3>Where your data went, by kind of company</h3>${catShare(r.byCat, r.totalSent)}` : ''}
     ${r.timeline.length > 2 && r.timeline.some((p) => p[1] > 0) ? `<h3>Data sent over time</h3>${timeline(r.timeline)}` : ''}
     <div class="howto"><h3>How to read this report</h3>
-      <p><b>Seen</b> means WhoSees read it in traffic that wasn't encrypted. <b>Likely</b> means it's what that kind of company usually receives: the traffic was encrypted, so its contents stay private between the app and the server, and WhoSees can only see who received it. <b>Could include</b> (Android) means the app is allowed to read that information and talks to tracking or advertising companies.</p>
-      <p><b>Privacy grade</b> per app: <i>Good</i> = no trackers, everything encrypted. <i>Fair</i> = some trackers or unencrypted traffic. <i>Poor</i> = three or more trackers, or personal details seen in readable traffic.</p></div>`;
+      <p>Almost everything your apps send today is <b>encrypted</b>, so WhoSees can see <i>who</i> they talked to, but not the words inside. That's why you'll see two kinds of label: <b>Seen</b> means WhoSees actually read it${r.readPayloads ? ", either because a connection wasn't encrypted or because you turned on looking inside the data" : ", because that connection wasn't encrypted"}; <b>Likely</b> means it's what a company like this normally collects, going by who received it — not a reading of your traffic.</p>
+      ${r.readPayloads ? `<p><b>Looking inside the data was on for this live view.</b> With your permission, WhoSees read the plaintext your apps sent over HTTPS to show the kinds of data leaving, like email, location or logins — on this ${device}, in memory only, never the full contents and never saved or uploaded.</p>` : ''}
+      <p>The pages that follow are the plain summary. <b>Technical details</b> at the end lists every connection and the raw numbers. The per-app <b>grade</b> is a quick flag: <i>Good</i> = no trackers, all encrypted; <i>Fair</i> = some trackers or unencrypted traffic; <i>Poor</i> = three or more trackers, or personal details seen in the clear.</p></div>`;
 
   const appsSec = `${sec('apps', 'Apps', `Every app that used the network during this live view, the most data first.`)}
     ${netApps.length ? bars(netApps.slice(0, 12).map((x) => ({ label: x.a.name, value: x.a.sent }))) : ''}
@@ -335,7 +335,7 @@ export function buildReport(s, ctx) {
       </article>`;
     }).join('')}`;
 
-  const companiesSec = r.companies.length ? `${sec('companies', 'Companies', `Who received your data. The company is the owner of the server or website, from its address and name.`)}
+  const companiesSec = r.companies.length ? `${sec('companies', 'Who received your data', `Each company here owns a server or website your apps talked to. "Kind" is what that company mainly does.`)}
     <table class="t"><thead><tr><th>Company</th><th>Kind</th><th>Apps</th><th>Where</th><th class="n">Sent</th><th class="n">Connections</th></tr></thead><tbody>
     ${r.companies.map((c) => `<tr><td><b>${esc(c.name)}</b>${c.sites.size ? `<div class="sub">${esc([...c.sites.keys()].filter(Boolean).slice(0, 3).join(', '))}</div>` : ''}</td><td>${chip(c.cat)}</td><td>${esc([...c.apps.keys()].slice(0, 4).join(', '))}${c.apps.size > 4 ? '…' : ''}</td><td>${esc([...c.places].slice(0, 2).join('; '))}${c.places.size > 2 ? '…' : ''}</td><td class="n">${bytes(c.sent)}</td><td class="n">${c.n}</td></tr>`).join('')}
     </tbody></table>` : '';
@@ -387,6 +387,35 @@ export function buildReport(s, ctx) {
     <p>${r.mode === 'standard' ? 'This live view used Standard mode, which checks the list of open connections several times a second: very short connections can be missed, and some website names may be missing.' : 'This live view saw every connection.'} Byte counts cover this live view only.</p>
     <p class="sub">IP location by DB-IP.com (CC BY 4.0). Tracker data: AdGuard companiesdb / WhoTracks.me (CC BY-SA 4.0). Threat data: Hagezi Threat Intelligence Feeds (GPL-3.0), abuse.ch (CC0). Map © OpenStreetMap contributors, Protomaps. WhoSees is free, open-source software (GPL-3.0): whosees.app</p>`;
 
+  // Browser-focused view: the websites each browser contacted, split into pages you opened and what loaded on its own.
+  const BROWSER = /firefox|chromium|chrome|brave|\bedge\b|msedge|vivaldi|opera|librewolf|waterfox|epiphany|gnome-web|falkon|tor-?browser|\bzen\b|qutebrowser|midori|safari/i;
+  const isBrowser = (a) => BROWSER.test(a.name || '') || BROWSER.test(a.exe || '');
+  const BG = new Set(['tracker', 'ads', 'analytics', 'cdn', 'cloud']);
+  const siteRows = (appRec) => {
+    const m = new Map();
+    for (const c of r.net) {
+      if (!c.app || c.app.name !== appRec.name) continue;
+      const key = c.site || c.host; if (!key) continue;
+      let e = m.get(key);
+      if (!e) m.set(key, e = { host: key, cat: c.category, owner: c.owner, sent: 0, n: 0 });
+      e.sent += (c.ss || 0); e.n++;
+      if (TRACKING.has(c.category)) e.cat = c.category;
+    }
+    return [...m.values()].sort((a, b) => b.sent - a.sent);
+  };
+  const siteBlocks = netApps.filter((x) => isBrowser(x.a)).map((x) => {
+    const list = siteRows(x.a);
+    if (!list.length) return '';
+    const pages = list.filter((e) => !BG.has(e.cat)), bg = list.filter((e) => BG.has(e.cat));
+    return `<article class="card"><header><h3>${esc(x.a.name)}</h3><span class="spacer"></span><span class="mono">${plural(list.length, 'website')}</span></header>
+      <h4>Sites you opened</h4>
+      <ul class="kv">${pages.length ? more(pages, 20, (e) => `<li><span>${esc(e.host)}${e.owner && e.owner !== e.host ? ` <span class="sub">${esc(e.owner)}</span>` : ''}</span><span>${bytes(e.sent)}</span></li>`) : '<li class="muted">No ordinary websites seen — only the background services below</li>'}</ul>
+      ${bg.length ? `<h4>Loaded in the background</h4><ul class="kv">${more(bg, 20, (e) => `<li><span>${TRACKING.has(e.cat) ? '<i class="tr"></i>' : ''}${esc(e.host)} <span class="sub">${esc(CATEGORIES[e.cat]?.label || e.cat)}</span></span><span>${bytes(e.sent)}</span></li>`)}</ul>` : ''}
+    </article>`;
+  }).join('');
+  const sitesSec = siteBlocks ? `${sec('websites', 'Websites your browser contacted', `WhoSees sees every address your browser opened — the page you asked for <b>and</b> everything that page loaded on its own. It can't tell which one you typed, and the contents are encrypted, so this is <b>who your browser talked to</b>, not what you read.`)}${siteBlocks}` : '';
+  const techDivider = (r.countries.length || r.trackers.length || r.plain.length || r.rules.length || r.conns.length) ? `<div class="techdiv"><h2 class="nonum" id="tech">Technical details</h2><p class="intro">Everything above in full: every country, every connection, and the raw numbers. Here if you want to check the summary or dig in.</p></div>` : '';
+
   const T = theme === 'light'
     ? '--bg:#ffffff;--panel:#f5f4f0;--line:rgba(18,19,20,.12);--line2:rgba(18,19,20,.22);--text:#141516;--text2:#4d4e49;--text3:#7b7c76;--accent:#d9420b;--hot:#c2410c;--good:#15803d;--danger:#c81e3a;--warn:#a16207;'
     : '--bg:#0a0b0d;--panel:#121417;--line:rgba(236,234,228,.1);--line2:rgba(236,234,228,.2);--text:#eceae4;--text2:#a4a39c;--text3:#7a7b75;--accent:#ff5b1f;--hot:#ff8a4c;--good:#4ade80;--danger:#ff3d5a;--warn:#f2c14e;';
@@ -415,9 +444,13 @@ b{font-weight:640}.mono,.sub,.path,th,.tile label,dt,.k,.bv,.bl{font-family:"Ple
 .tile strong{font:680 17pt/1.15 "Archivo";font-stretch:108%;font-variant-numeric:tabular-nums}.tile small{font-size:7.5pt;color:var(--text3)}.tile.hot strong{color:var(--hot)}
 .cv-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:0}.cv-meta dt{font-size:6.8pt;letter-spacing:.12em;text-transform:uppercase;color:#7a7b75}.cv-meta dd{margin:1mm 0 0;font-size:8.6pt}
 .cv-foot{margin-top:auto;font:400 7.4pt "Plex Mono";color:#7a7b75;border-top:1px solid rgba(236,234,228,.1);padding-top:3mm}
+main{counter-reset:sec}
 h2{font:700 19pt/1.1 "Archivo";font-stretch:110%;margin:0 0 3mm;padding-top:2mm;break-after:avoid;display:flex;align-items:baseline;gap:9px}
-h2 .k{font:500 9pt "Plex Mono";color:var(--accent);letter-spacing:.08em}
-h2.np{break-before:page}h2:not(.np):not(#findings){margin-top:11mm}
+h2::before{counter-increment:sec;content:counter(sec,decimal-leading-zero);font:500 9pt "Plex Mono";color:var(--accent);letter-spacing:.08em}
+h2.nonum::before{content:none;counter-increment:none}
+h2.np{break-before:page}h2:not(.np):not(#findings):not(.nonum){margin-top:11mm}
+.techdiv{break-before:page;margin-top:0}.techdiv .intro{max-width:160mm}
+.card{break-inside:avoid}
 h3{font:650 11pt "Archivo";margin:6mm 0 2mm;break-after:avoid}h4{font:500 7pt "Plex Mono";letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:3mm 0 1.5mm}
 .intro{color:var(--text2);margin:0 0 4mm;max-width:160mm;break-after:avoid}h3+*,h2+*{break-before:avoid}
 .findings{list-style:none;padding:0;margin:0 0 2mm;border-top:1px solid var(--line)}
@@ -452,7 +485,7 @@ i.tr{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff5
 `;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)} · WhoSees report</title><style>${css}</style></head><body>
 ${cover}
-<main>${findingsSec}${appsSec}${companiesSec}${countriesSec}${trackersSec}${dataSec}${plainSec}${alertsSec}${blockSec}${allSec}${aboutSec}</main>
+<main>${findingsSec}${alertsSec}${sitesSec}${companiesSec}${dataSec}${appsSec}${techDivider}${countriesSec}${trackersSec}${plainSec}${blockSec}${allSec}${aboutSec}</main>
 </body></html>`;
 }
 

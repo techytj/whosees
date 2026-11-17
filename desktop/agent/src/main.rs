@@ -9,9 +9,11 @@ mod classify;
 mod datatypes;
 mod geo;
 mod hosts;
+mod http2;
 mod sock;
 mod threats;
 #[cfg(target_os = "linux")] mod block;
+#[cfg(target_os = "linux")] mod sslcap;
 #[cfg(windows)] #[path = "win_block.rs"] mod block;
 #[cfg(target_os = "linux")] mod diag;
 #[cfg(target_os = "linux")] mod procs;
@@ -104,6 +106,9 @@ fn main() {
     let (mut connect, mut token) = (None::<String>, String::new());
     let mut threats_dir = None::<PathBuf>;
     let mut blocking = false; // the app passes --blocking; blocking also needs Deep mode (firewall rules need admin rights)
+    // Payload reading: OFF by default, its own consent separate from Deep mode.
+    // Reads the plaintext apps send over TLS (in memory only, kinds not bodies).
+    let mut read_payloads = false;
     while let Some(a) = args.next() {
         match a.as_str() {
             "--geo" => geo_path = args.next().map(PathBuf::from),
@@ -121,6 +126,7 @@ fn main() {
             "--connect" => connect = args.next(),
             "--threats" => threats_dir = args.next().map(PathBuf::from),
             "--blocking" => blocking = true,
+            "--read-payloads" => read_payloads = true,
             "--token" => token = args.next().unwrap_or_default(),
             "-h" | "--help" => { eprintln!("usage: whosees-agent --geo FILE [--interval MS] [--lan] [--once]"); return; }
             _ => { eprintln!("unknown argument {a}"); std::process::exit(2); }
@@ -183,12 +189,32 @@ fn main() {
     #[cfg(windows)]
     let etw_dns_tx = obs_tx.clone();
     let lookup_tx = obs_tx.clone(); // background lookups for newly blocked websites
+    #[cfg(target_os = "linux")]
+    let sslcap_tx = obs_tx.clone(); // decrypted-payload "data" events (if --read-payloads)
     if deep || cfg!(windows) {
         match sniff::start(obs_tx, udp.clone(), running.clone()) {
             Ok(()) => deep_on = cfg!(target_os = "linux"), // Windows DNS cache reader isn't Deep mode
             Err(e) => { emit(&mut out, &serde_json::json!({"t":"warn","msg":format!("Deep mode unavailable ({e}). Showing standard view.")})); }
         }
     }
+    // Linux Deep mode, opt-in: read the plaintext apps send over TLS (eBPF
+    // uprobes). Off unless --read-payloads; in memory only; kinds not bodies.
+    #[cfg(target_os = "linux")]
+    let payloads_on = if deep_on && read_payloads {
+        match sslcap::start(sslcap_tx, running.clone()) {
+            Ok(()) => true,
+            Err(e) => {
+                emit(&mut out, &serde_json::json!({"t":"warn","msg":format!("Payload reading unavailable ({e}).")}));
+                false
+            }
+        }
+    } else {
+        let _ = sslcap_tx;
+        false
+    };
+    #[cfg(not(target_os = "linux"))]
+    let payloads_on = { let _ = read_payloads; false };
+
     // Windows Deep mode: kernel network tracing (ETW).
     #[cfg(windows)]
     let etw_flows: etw::Flows = Default::default();
@@ -213,7 +239,7 @@ fn main() {
 
     emit(&mut out, &serde_json::json!({
         "t": "hello", "version": env!("CARGO_PKG_VERSION"), "os": std::env::consts::OS,
-        "mode": if deep_on { "deep" } else { "standard" }, "blocking": blocker.available, "threats": [threats.loaded.0, threats.loaded.1], "geo": geo.is_some(), "ts": now_ms()
+        "mode": if deep_on { "deep" } else { "standard" }, "blocking": blocker.available, "threats": [threats.loaded.0, threats.loaded.1], "geo": geo.is_some(), "read_payloads": payloads_on, "ts": now_ms()
     }));
     let _ = out.flush();
 

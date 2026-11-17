@@ -26,6 +26,26 @@ pub struct UdpBytes { pub map: HashMap<FlowKey, (u64, u64)> }
 const ETH_P_ALL: u16 = 0x0003;
 const PACKET_OUTGOING: u8 = 4;
 
+// Last SNI / HTTP Host seen per outgoing flow. The payload-capture layer
+// (sslcap) reads this to confirm which already-tracked connection a decrypted
+// write belongs to when the app never handed OpenSSL a socket fd. It holds
+// only hostnames already observed on the wire, never any payload.
+static SNI: std::sync::OnceLock<Mutex<HashMap<FlowKey, String>>> = std::sync::OnceLock::new();
+
+fn remember_host(flow: FlowKey, host: &str) {
+    let m = SNI.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Ok(mut g) = m.lock() {
+        if g.len() > 50_000 { g.clear(); } // bound memory, same cap as main's flow_host
+        g.insert(flow, host.to_ascii_lowercase());
+    }
+}
+
+/// The SNI/Host last seen for an outgoing flow, if any. Used only to match a
+/// decrypted write to its connection; the value never reaches the report.
+pub fn host_for_flow(flow: &FlowKey) -> Option<String> {
+    SNI.get().and_then(|m| m.lock().ok().and_then(|g| g.get(flow).cloned()))
+}
+
 pub fn start(tx: Sender<Obs>, udp: Arc<Mutex<UdpBytes>>, running: Arc<AtomicBool>) -> std::io::Result<()> {
     let fd = unsafe { libc::socket(libc::AF_PACKET, libc::SOCK_DGRAM | libc::SOCK_CLOEXEC, (ETH_P_ALL).to_be() as i32) };
     if fd < 0 { return Err(std::io::Error::last_os_error()); }
@@ -88,7 +108,10 @@ fn handle(p: &[u8], ethertype: u16, out: bool, tx: &Sender<Obs>, udp: &Arc<Mutex
                        else if payload.starts_with(b"GET ") || payload.starts_with(b"POST ") || payload.starts_with(b"HEAD ")
                             || payload.starts_with(b"PUT ") || payload.starts_with(b"OPTIONS ") { http_host(payload) }
                        else { None };
-            if let Some(h) = host { let _ = tx.send(Obs::Host { tcp: true, flow: (src, sp, dst, dp), host: h }); }
+            if let Some(h) = host {
+                remember_host((src, sp, dst, dp), &h);
+                let _ = tx.send(Obs::Host { tcp: true, flow: (src, sp, dst, dp), host: h });
+            }
             if payload[0] != 0x16 {
                 let items = crate::datatypes::inspect_http(payload);
                 if !items.is_empty() { let _ = tx.send(Obs::Data { tcp: true, flow: (src, sp, dst, dp), items }); }

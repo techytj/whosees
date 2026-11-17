@@ -172,6 +172,9 @@ results += driver.run(out, 'premium', [
       document.querySelector('[data-back]').click();
       $('#settingsBtn').click();
       CHECK('settings-offers-support', !!document.querySelector('#dlg [data-support]') && !$('#dlg').innerText.includes('Premium'), $('#dlg').innerText.slice(0, 160));
+      CHECK('settings-has-look-inside-toggle', !!$('#payloadSw'), $('#dlg').innerText.slice(0, 220));
+      CHECK('look-inside-off-by-default', !!$('#payloadSw') && !$('#payloadSw').classList.contains('on'), '');
+      CHECK('look-inside-wording-plain-and-reassuring', /kinds of/i.test($('#dlg').innerText) && /never saved or uploaded/i.test($('#dlg').innerText) && /off by default/i.test($('#dlg').innerText), $('#dlg').innerText.slice(0, 400));
       document.querySelector('#dlg [data-support]').click();
       var tips = [...document.querySelectorAll('#dlg .tip-amt')];
       CHECK('support-offers-5-10-15', tips.map((a) => a.dataset.amount).join() === '5,10,15', tips.map((a) => a.dataset.amount));

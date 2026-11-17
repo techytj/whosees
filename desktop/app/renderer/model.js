@@ -59,6 +59,7 @@ export class Session {
     this.alerts = [];         // newest first
     this.threatLists = null;
     this.blocking = false;
+    this.readPayloads = false; // whether this live view read TLS payloads (opt-in)
     this.listeners = new Set();
     this.dirty = true;
   }
@@ -75,7 +76,7 @@ export class Session {
   ingest(events) {
     for (const e of events) {
       switch (e.t) {
-        case 'hello': this.mode = e.mode; this.blocking = !!e.blocking; this.threatLists = e.threats || null; this.started ??= Date.now(); this.emit('hello', e); break;
+        case 'hello': this.mode = e.mode; this.blocking = !!e.blocking; this.readPayloads = !!e.read_payloads; this.threatLists = e.threats || null; this.started ??= Date.now(); this.emit('hello', e); break;
         case 'open': this.open(e); break;
         case 'update': this.update(e); break;
         case 'close': this.close(e); break;
